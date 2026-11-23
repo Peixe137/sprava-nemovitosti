@@ -4,7 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { DRUHY_PREDPISU, STAVY_POHLEDAVKY, PERIODY, korun, datum, mesic } from "@/lib/format";
 import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
-import { doplnitPredpisy, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt } from "../actions";
+import { doplnitPredpisy, prepocitatPlatby, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt } from "../actions";
 
 export default async function DetailSmlouvy({ params, searchParams }: PageProps<"/smlouvy/[id]">) {
   const { id } = await params;
@@ -32,7 +32,10 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
     <>
       <Nadpis titulek={`Smlouva VS ${s.variabilni_symbol}`}
         podtitulek={`${s.cislo_smlouvy ? `č. ${s.cislo_smlouvy} · ` : ""}${s.nemovitost?.nazev} · pronajímatel ${s.pronajimatel?.nazev}`}
-        akce={<form action={doplnitPredpisy.bind(null, id)}><button className="tlacitko-svetle">Doplnit platby do aktuálního měsíce</button></form>} />
+        akce={<div className="flex flex-wrap gap-2">
+          <form action={doplnitPredpisy.bind(null, id)}><button className="tlacitko-svetle">Doplnit platby do aktuálního měsíce</button></form>
+          <form action={prepocitatPlatby.bind(null, id)}><Odeslat svetle>Přepočítat platby podle předpisu</Odeslat></form>
+        </div>} />
       <Chyba text={chyba} />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -98,7 +101,7 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
                             <span>poslední měsíc</span><input type="month" name="do" defaultValue={tento} className="pole w-36 py-1" />
                             <button className="rounded border border-slate-300 px-2 py-1 hover:bg-slate-50">Ukončit</button>
                           </form>
-                          <form action={smazatPolozku.bind(null, id, p.id)} className="mt-1"><button className="text-slate-400 hover:text-red-700">smazat úplně (zadaná omylem)</button></form>
+                          <form action={smazatPolozku.bind(null, id, p.id)} className="mt-1"><button className="text-slate-400 hover:text-red-700">smazat úplně (zadaná omylem – platby se přepočítají)</button></form>
                         </details>)}
                     </div>
                   </li>);
@@ -112,7 +115,7 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
                 <input name="castka" required placeholder="Kč" inputMode="decimal" className="pole" />
                 <select name="perioda" className="pole">{Object.entries(PERIODY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
                 <label className="block sm:col-span-2"><span className="stitek">Platí od měsíce</span><input type="date" name="platnost_od" defaultValue={pristiMesic} className="pole" /></label>
-                <p className="text-xs text-slate-500 sm:col-span-2">Při změně nájmu starou položku ukončete a přidejte novou. Už vystavené měsíce se nemění.</p>
+                <p className="text-xs text-slate-500 sm:col-span-2">Při změně nájmu starou položku ukončete (nebo smažte, pokud byla zadaná špatně) a přidejte novou. Platby se pak samy přepočítají – už zaplacené částky zůstanou a rozdělí se od nejstarší.</p>
                 <div className="sm:col-span-2"><Odeslat>Přidat</Odeslat></div>
               </form>
             </details>

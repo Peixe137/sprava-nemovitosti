@@ -68,6 +68,17 @@ export async function zaplaceno(smlouvaId: string, pohledavkaId: string, zbyva: 
   revalidatePath(`/smlouvy/${smlouvaId}`);
 }
 
+/** Po změně předpisu přepočítá platby; zaplacené částky zůstanou (rozdělí se od nejstarší). */
+async function prepocitat(supabase: Awaited<ReturnType<typeof supabaseServer>>, id: string) {
+  const { error } = await supabase.rpc("prepocitat_pohledavky", { p_smlouva: id });
+  return error?.message;
+}
+
+export async function prepocitatPlatby(smlouvaId: string) {
+  const supabase = await supabaseServer();
+  zpet(smlouvaId, await prepocitat(supabase, smlouvaId));
+}
+
 const zpet = (id: string, chyba?: string) => {
   revalidatePath(`/smlouvy/${id}`);
   redirect(`/smlouvy/${id}${chyba ? `?chyba=${encodeURIComponent(chyba)}` : ""}`);
@@ -82,8 +93,7 @@ export async function pridatPolozku(smlouvaId: string, f: FormData) {
     perioda: t(f, "perioda") ?? "mesicne", platnost_od: od,
   });
   if (error) zpet(smlouvaId, error.message);
-  await supabase.rpc("vygenerovat_pohledavky", { p_smlouva: smlouvaId });
-  zpet(smlouvaId);
+  zpet(smlouvaId, await prepocitat(supabase, smlouvaId));
 }
 
 /** Ukončí položku k poslednímu dni zvoleného měsíce – už vystavené platby zůstanou. */
@@ -93,13 +103,13 @@ export async function ukoncitPolozku(smlouvaId: string, id: string, f: FormData)
   const [r, mm] = m.split("-").map(Number);
   const posledni = new Date(Date.UTC(r, mm, 0)).toISOString().slice(0, 10);
   const { error } = await supabase.from("predpis_polozka").update({ platnost_do: posledni }).eq("id", id);
-  zpet(smlouvaId, error?.message);
+  zpet(smlouvaId, error?.message ?? await prepocitat(supabase, smlouvaId));
 }
 
 export async function smazatPolozku(smlouvaId: string, id: string) {
   const supabase = await supabaseServer();
   const { error } = await supabase.from("predpis_polozka").delete().eq("id", id);
-  zpet(smlouvaId, error?.message);
+  zpet(smlouvaId, error?.message ?? await prepocitat(supabase, smlouvaId));
 }
 
 /** Kontaktní osoba u smlouvy (vedoucí pobočky, účetní, správce…). */
