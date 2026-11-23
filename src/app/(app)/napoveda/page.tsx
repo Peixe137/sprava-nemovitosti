@@ -21,7 +21,10 @@ const KAPITOLY: Kapitola[] = [
     ["Budova a jednotky", "Jednotka pod budovou má vlastní jen název, patro, plochu a využití. Ostatní se propisuje z budovy, i když budovu později upravíte. Samostatný byt (např. v SVJ) zakládejte bez „Patří pod“."],
     ["Patro a číslo jednotky", "Patro 2 + jednotka 01 = číslo 201. Z čísla se skládá variabilní symbol."],
     ["Katastr", "V detailu sekce „Katastr – z čeho se nemovitost skládá“: pozemky, stavby a jednotky. Při přidání parcely zaškrtnuté „doplnit výměru a druh z RÚIAN“ dotáhne údaje z katastru; každý řádek jde upravit."],
-    ["Google Disk", "Odkaz na složku vložte v Upravit. Tlačítko „Disk ↗“ je v seznamu i v detailu; jednotka bez vlastní podsložky otevře složku budovy."],
+    ["Google Disk", "Odkaz na složku vložte v Upravit. V detailu nemovitosti je seznam souborů ze složky (když jste v prohlížeči přihlášen do Googlu); jednotka bez vlastní podsložky ukáže složku budovy."],
+    ["Hledání a výběr", "Seznam nemovitostí má pole Hledat (název, ulice, obec, LV). Ve formulářích se nemovitost vybírá psaním – stačí část adresy nebo názvu."],
+    ["Mapa", "Adresa v seznamu je odkaz na Mapy.cz (přesný bod, když byla adresa vybrána z RÚIAN)."],
+    ["Název jednotky", "K.ú. + č.p. budovy-patro a jednotka + popis v závorce, např. „Bechyně 147-101 (Pošta)“. Tlačítko „použít do názvu“ ho složí samo."],
     ["Archiv a smazání", "Upravit → Archivovat (prodáno, konec správy…) – vše zůstane v historii. Smazat jen omyly a duplicity (dole v Upravit)."],
   ] },
   { id: "smlouvy", nadpis: "Nájemní smlouvy", odkaz: "/smlouvy", body: [

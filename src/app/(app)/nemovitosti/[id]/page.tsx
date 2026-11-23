@@ -33,6 +33,8 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
     : x.vyuziti === "pronajem" ? (pronajato.has(id) ? "Pronajato" : "Volné") : "";
   // jednotka bez vlastní podsložky otevře složku budovy
   const disk: string | null = x.drive_folder_url ?? x.nadrazena?.drive_folder_url ?? null;
+  // ID složky z odkazu …/folders/<id> nebo ?id=<id> (pro náhled souborů přímo zde)
+  const slozkaId = disk?.match(/\/folders\/([\w-]+)/)?.[1] ?? disk?.match(/[?&]id=([\w-]+)/)?.[1] ?? null;
   const vymeraCelkem = polozky.filter((k) => k.druh === "parcela").reduce((a, k) => a + Number(k.vymera_m2 ?? 0), 0);
   const DRUH: Record<string, string> = { parcela: "Pozemek", stavba: "Stavba", jednotka: "Jednotka" };
 
@@ -74,6 +76,18 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
           </dl>
           {x.poznamka && <p className="mt-3 text-sm text-slate-600">{x.poznamka}</p>}
         </section>
+
+        {slozkaId && (
+          <section id="disk" className="karta lg:col-span-3">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-semibold">Soubory na Disku{!x.drive_folder_url && x.nadrazena ? " (složka budovy)" : ""}</h2>
+              <a href={disk!} target="_blank" rel="noopener" className="text-sm odkaz">Otevřít v Google Disku ↗</a>
+            </div>
+            <iframe title="Soubory ve složce na Google Disku" src={`https://drive.google.com/embeddedfolderview?id=${slozkaId}#list`}
+              className="h-96 w-full rounded-lg border border-slate-200 bg-white" />
+            <p className="mt-2 text-xs text-slate-500">Seznam je vidět, když jste v prohlížeči přihlášen do Googlu účtem s přístupem ke složce. Kliknutím na soubor se otevře náhled.</p>
+          </section>
+        )}
 
         <div className="space-y-6 lg:col-span-2">
           <section id="katastr" className="karta overflow-x-auto">

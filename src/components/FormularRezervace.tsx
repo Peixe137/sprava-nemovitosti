@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Odeslat } from "@/components/Odeslat";
 import { PLATFORMY } from "@/lib/format";
+import { HledatNemovitost, type Moznost } from "@/components/HledatNemovitost";
 
 type R = Record<string, string | number | null | undefined>;
 const Pole = ({ name, label, v, type = "text", ...rest }: { name: string; label: string; v?: R; type?: string; [k: string]: unknown }) => (
@@ -9,17 +10,14 @@ const Pole = ({ name, label, v, type = "text", ...rest }: { name: string; label:
 );
 
 export function FormularRezervace({ akce, nemovitosti, v, vychoziNemovitost }: {
-  akce: (f: FormData) => Promise<void>; nemovitosti: { id: string; nazev: string }[]; v?: R; vychoziNemovitost?: string;
+  akce: (f: FormData) => Promise<void>; nemovitosti: Moznost[]; v?: R; vychoziNemovitost?: string;
 }) {
   return (
     <form action={akce} className="karta max-w-3xl space-y-5">
       <fieldset className="grid gap-3 sm:grid-cols-3">
         <legend className="mb-2 text-sm font-semibold">Pobyt</legend>
         <label className="block sm:col-span-2"><span className="stitek">Nemovitost</span>
-          <select name="nemovitost_id" required defaultValue={String(v?.nemovitost_id ?? vychoziNemovitost ?? "")} className="pole">
-            <option value="" disabled>— vyberte —</option>
-            {nemovitosti.map((x) => <option key={x.id} value={x.id}>{x.nazev}</option>)}
-          </select></label>
+          <HledatNemovitost name="nemovitost_id" moznosti={nemovitosti} vychozi={String(v?.nemovitost_id ?? vychoziNemovitost ?? "")} required /></label>
         <label className="block"><span className="stitek">Platforma</span>
           <select name="platforma" defaultValue={String(v?.platforma ?? "airbnb")} className="pole">
             {Object.entries(PLATFORMY).map(([k, p]) => <option key={k} value={k}>{p.text}</option>)}

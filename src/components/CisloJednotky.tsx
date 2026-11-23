@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 
 /** Patro + pořadí na patře → číslo jednotky (2. patro, j. 01 → 201) a označení s č.p. budovy (147-201).
  *  Číslo jde přepsat ručně; z označení se dá složit název jednotky. */
-export function CisloJednotky({ patro: p0, kod: k0, cp }: { patro?: number | null; kod?: string | null; cp?: string | null }) {
+export function CisloJednotky({ patro: p0, kod: k0, cp, ku }: { patro?: number | null; kod?: string | null; cp?: string | null; ku?: string | null }) {
   const ref = useRef<HTMLDivElement>(null);
   const [patro, setPatro] = useState(p0 != null ? String(p0) : "");
   const [poradi, setPoradi] = useState(k0 && k0.length === 3 ? k0.slice(1) : "");
@@ -19,7 +19,9 @@ export function CisloJednotky({ patro: p0, kod: k0, cp }: { patro?: number | nul
     const pole = ref.current?.closest("form")?.querySelector<HTMLInputElement>('input[name="nazev"]');
     if (!pole) return;
     const popis = pole.value.match(/\(.*\)\s*$/)?.[0];   // ponechá „(Pošta)“
-    pole.value = popis ? `${oznaceni} ${popis}` : `${oznaceni} ()`;
+    // název: katastrální území + označení, popis v závorce – např. „Bechyně 147-101 (Pošta)“
+    const zaklad = [ku, oznaceni].filter(Boolean).join(" ");
+    pole.value = popis ? `${zaklad} ${popis}` : `${zaklad} ()`;
     pole.focus();
   };
   return (
@@ -34,9 +36,9 @@ export function CisloJednotky({ patro: p0, kod: k0, cp }: { patro?: number | nul
         <input name="kod_jednotky" inputMode="numeric" maxLength={3} pattern="[0-9]{1,3}" value={kod} placeholder="201"
           onChange={(e) => { setRucne(true); setKod(e.target.value.replace(/\D/g, "")); }} className="pole" /></label>
       <div ref={ref} className="text-sm text-slate-600 sm:col-span-3">
-        {oznaceni ? <>Označení jednotky: <b>{oznaceni}</b>
+        {oznaceni ? <>Označení jednotky: <b>{[ku, oznaceni].filter(Boolean).join(" ")}</b>
           <button type="button" onClick={doNazvu} className="ml-3 text-blue-700 hover:underline">použít do názvu</button></>
-          : <span className="text-slate-400">Označení = č.p. budovy-patro a jednotka, např. 147-101</span>}
+          : <span className="text-slate-400">Označení = k.ú., č.p. budovy (nebo parcela)-patro a jednotka, např. Bechyně 147-101</span>}
       </div>
     </>
   );

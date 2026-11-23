@@ -12,10 +12,10 @@ type Props = {
   zrusit: string;
   typy: { kod: string; nazev: string }[];
   vlastnici: { id: string; nazev: string; zkratka: string | null }[];
-  budovy: { id: string; nazev: string }[];
+  budovy: { id: string; nazev: string; popis?: string | null }[];
   // vyplněno = formulář jednotky pod budovou; údaje níže se z budovy propisují
   rodic?: { id: string; nazev: string; drive_folder_url: string | null; ulice?: string | null; cislo_popisne?: string | null; obec?: string | null;
-    katastralni_uzemi?: string | null; lv?: string | null; datum_porizeni?: string | null; vlastnici?: string } | null;
+    katastralni_uzemi?: string | null; lv?: string | null; parcelni_cislo?: string | null; datum_porizeni?: string | null; vlastnici?: string } | null;
   v?: Zaznam;              // výchozí hodnoty (úprava)
   vlastnictvi?: { vlastnik_id: string; podil_citatel: number; podil_jmenovatel: number } | null;
   vice_vlastniku?: boolean;
@@ -60,14 +60,14 @@ export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rod
             <select name="typ_kod" defaultValue={String(v?.typ_kod ?? "J")} className="pole">
               {typy.filter((t) => ["J", "N", "O"].includes(t.kod)).map((t) => <option key={t.kod} value={t.kod}>{t.kod} – {t.nazev}</option>)}
             </select></label>
-          <div className="sm:col-span-2"><Pole name="nazev" label="Název jednotky (= název podsložky)" required placeholder="NP001 (Pošta)" v={v} /></div>
+          <div className="sm:col-span-2"><Pole name="nazev" label="Název jednotky (= název podsložky)" required placeholder="Bechyně 147-101 (Pošta)" v={v} /></div>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {Stav}
           <Pole name="plocha_m2" label="Plocha m²" inputMode="decimal" v={v} />
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <CisloJednotky cp={rodic.cislo_popisne ?? null} patro={v?.patro != null ? Number(v.patro) : null} kod={v?.kod_jednotky != null ? String(v.kod_jednotky) : null} />
+          <CisloJednotky ku={rodic.katastralni_uzemi ?? null} cp={rodic.cislo_popisne ?? rodic.parcelni_cislo ?? null} patro={v?.patro != null ? Number(v.patro) : null} kod={v?.kod_jednotky != null ? String(v.kod_jednotky) : null} />
         </div>
         {!uprava && <Pole name="cislo_jednotky" label="Č. jednotky v katastru (je-li vymezena)" placeholder="147/1" />}
         {Upozorneni}

@@ -1,3 +1,4 @@
+import { moznostiNemovitosti } from "@/lib/vyberNemovitosti";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Chyba, Nadpis } from "@/components/Chyba";
@@ -14,9 +15,9 @@ export default async function UpravitNemovitost({ params, searchParams }: PagePr
   if (!x) notFound();
   const [typy, budovy, vlastnici, rodic] = await Promise.all([
     supabase.from("typ_nemovitosti").select("kod, nazev").order("kod"),
-    supabase.from("nemovitost").select("id, nazev").is("nadrazena_id", null).is("archivovano_dne", null).order("nazev"),
+    moznostiNemovitosti(supabase, { jenBudovy: true }),
     supabase.from("vlastnik").select("id, nazev, zkratka").order("nazev"),
-    x.nadrazena_id ? supabase.from("nemovitost").select("id, nazev, drive_folder_url, ulice, cislo_popisne, obec, katastralni_uzemi, lv, datum_porizeni, vlastnictvi(vlastnik(nazev, zkratka))").eq("id", x.nadrazena_id).maybeSingle() : Promise.resolve({ data: null }),
+    x.nadrazena_id ? supabase.from("nemovitost").select("id, nazev, drive_folder_url, ulice, cislo_popisne, obec, katastralni_uzemi, lv, parcelni_cislo, datum_porizeni, vlastnictvi(vlastnik(nazev, zkratka))").eq("id", x.nadrazena_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const vl = (x.vlastnictvi ?? []) as { vlastnik_id: string; podil_citatel: number; podil_jmenovatel: number }[];
   // jednotka = má nadřazenou budovu a sama nemá podřízené; areál s podřízenou budovou se upravuje plným formulářem
@@ -29,7 +30,7 @@ export default async function UpravitNemovitost({ params, searchParams }: PagePr
       <Nadpis titulek={`Upravit: ${x.nazev}`} />
       <Chyba text={chyba} />
       <FormularNemovitosti akce={upravitNemovitost.bind(null, id)} zrusit={`/nemovitosti/${id}`} v={x}
-        typy={typy.data ?? []} budovy={budovy.data ?? []} vlastnici={vlastnici.data ?? []} rodic={jednotka}
+        typy={typy.data ?? []} budovy={budovy} vlastnici={vlastnici.data ?? []} rodic={jednotka}
         vlastnictvi={vl[0] ?? null} vice_vlastniku={vl.length > 1} />
       {x.archivovano_dne ? (
         <form action={obnovitNemovitost.bind(null, id)} className="mt-6 max-w-3xl rounded-xl border border-slate-200 bg-white p-5 text-sm">

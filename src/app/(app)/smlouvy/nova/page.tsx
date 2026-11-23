@@ -4,7 +4,8 @@ import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatSmlouvu } from "../actions";
 import { AresTlacitko } from "@/components/AresTlacitko";
-import { VyberNemovitosti } from "@/components/VyberNemovitosti";
+import { HledatNemovitost } from "@/components/HledatNemovitost";
+import { moznostiNemovitosti } from "@/lib/vyberNemovitosti";
 import { PolozkyPredpisu, type Polozka } from "@/components/PolozkyPredpisu";
 import { lvAJednotka, cisloSmlouvy } from "@/lib/jednotka";
 import { dnesIso } from "@/lib/format";
@@ -14,7 +15,7 @@ export default async function NovaSmlouva({ searchParams }: PageProps<"/smlouvy/
   const nemId = String(nemovitost ?? "");
   const supabase = await supabaseServer();
   const [nem, vl] = await Promise.all([
-    supabase.from("nemovitost").select("id, nazev").is("archivovano_dne", null).order("nazev"),
+    moznostiNemovitosti(supabase),
     supabase.from("vlastnik").select("id, nazev, zkratka").order("nazev"),
   ]);
 
@@ -40,7 +41,7 @@ export default async function NovaSmlouva({ searchParams }: PageProps<"/smlouvy/
     <>
       <Nadpis titulek="Nová nájemní smlouva" podtitulek="Po výběru nemovitosti se předvyplní pronajímatel, VS a platby z minulé smlouvy. Vše jde změnit." />
       <Chyba text={chyba} />
-      {((nem.data ?? []).length === 0 || (vl.data ?? []).length === 0) && (
+      {(nem.length === 0 || (vl.data ?? []).length === 0) && (
         <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Nejdřív potřebujete aspoň jednu <Link href="/nemovitosti/nova" className="odkaz">nemovitost</Link> a jednoho <Link href="/vlastnici" className="odkaz">vlastníka</Link>.
         </p>
@@ -49,7 +50,7 @@ export default async function NovaSmlouva({ searchParams }: PageProps<"/smlouvy/
         <fieldset className="grid gap-3 sm:grid-cols-2">
           <legend className="mb-2 text-sm font-semibold">Co a kdo pronajímá</legend>
           <label className="block"><span className="stitek">Nemovitost</span>
-            <VyberNemovitosti moznosti={nem.data ?? []} vybrana={nemId} /></label>
+            <HledatNemovitost name="nemovitost_id" moznosti={nem} vychozi={nemId} required navigace="/smlouvy/nova?nemovitost=" /></label>
           <label className="block"><span className="stitek">Pronajímatel</span>
             <select name="pronajimatel_id" required defaultValue={jednotka?.vlastnik ?? undefined} className="pole">
               {(vl.data ?? []).map((v) => <option key={v.id} value={v.id}>{v.nazev}{v.zkratka ? ` (@${v.zkratka})` : ""}</option>)}

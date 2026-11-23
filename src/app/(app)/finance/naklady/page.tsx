@@ -1,3 +1,5 @@
+import { HledatNemovitost } from "@/components/HledatNemovitost";
+import { moznostiNemovitosti } from "@/lib/vyberNemovitosti";
 import { AresTlacitko } from "@/components/AresTlacitko";
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -24,7 +26,7 @@ export default async function Naklady({ searchParams }: PageProps<"/finance/nakl
 
   const [naklady, nem, dodavatele] = await Promise.all([
     dotaz,
-    supabase.from("nemovitost").select("id, nazev").is("archivovano_dne", null).order("nazev"),
+    moznostiNemovitosti(supabase, { vcetneArchivu: true }),
     supabase.from("osoba").select("id, nazev_firmy, prijmeni, jmeno").eq("je_dodavatel", true).order("nazev_firmy"),
   ]);
   const radky = (naklady.data ?? []) as unknown as {
@@ -42,10 +44,7 @@ export default async function Naklady({ searchParams }: PageProps<"/finance/nakl
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <form className="flex flex-wrap gap-2">
-            <select name="nemovitost" defaultValue={String(nemovitost ?? "")} className="pole w-auto">
-              <option value="">Všechny nemovitosti</option>
-              {(nem.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.nazev}</option>)}
-            </select>
+            <div className="w-72"><HledatNemovitost name="nemovitost" moznosti={nem} vychozi={String(nemovitost ?? "")} prazdna="Všechny nemovitosti" /></div>
             <select name="rok" defaultValue={vybranyRok} className="pole w-auto">
               {[0, 1, 2, 3].map((i) => <option key={i}>{new Date().getFullYear() - i}</option>)}
             </select>
@@ -75,10 +74,7 @@ export default async function Naklady({ searchParams }: PageProps<"/finance/nakl
         <form action={pridatNaklad} className="karta space-y-3 self-start">
           <h2 className="font-semibold">Zadat náklad</h2>
           <label className="block"><span className="stitek">Nemovitost</span>
-            <select name="nemovitost_id" required defaultValue={String(nemovitost ?? "")} className="pole">
-              <option value="" disabled>— vyberte —</option>
-              {(nem.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.nazev}</option>)}
-            </select></label>
+            <HledatNemovitost name="nemovitost_id" moznosti={nem} vychozi={String(nemovitost ?? "")} required /></label>
           <label className="block"><span className="stitek">Kategorie</span>
             <select name="kategorie" required className="pole">
               {Object.entries(KATEGORIE_NAKLADU).filter(([k]) => k !== "porizeni").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
