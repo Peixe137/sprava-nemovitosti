@@ -3,6 +3,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { STAVY_NEMOVITOSTI } from "@/lib/format";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatNemovitost } from "../actions";
+import { RuianAdresa } from "@/components/RuianAdresa";
 
 export default async function NovaNemovitost({ searchParams }: PageProps<"/nemovitosti/nova">) {
   const { chyba, nadrazena } = await searchParams;
@@ -30,7 +31,7 @@ export default async function NovaNemovitost({ searchParams }: PageProps<"/nemov
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block"><span className="stitek">Patří pod (budova / areál)</span>
             <select name="nadrazena_id" defaultValue={String(nadrazena ?? "")} className="pole">
-              <option value="">— samostatná nemovitost —</option>
+              <option value="">— nepatří pod žádnou budovu ani areál —</option>
               {(nemovitosti.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.nazev}</option>)}
             </select></label>
           <label className="block"><span className="stitek">Stav</span>
@@ -51,6 +52,7 @@ export default async function NovaNemovitost({ searchParams }: PageProps<"/nemov
 
         <fieldset className="grid gap-3 sm:grid-cols-4">
           <legend className="mb-2 text-sm font-semibold">Katastr a adresa</legend>
+          <div className="sm:col-span-4"><RuianAdresa /></div>
           <Pole name="katastralni_uzemi" label="Katastrální území" />
           <Pole name="lv" label="LV" />
           <Pole name="parcelni_cislo" label="Parcela" />
