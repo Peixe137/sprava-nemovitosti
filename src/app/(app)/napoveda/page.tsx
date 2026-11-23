@@ -31,6 +31,13 @@ const KAPITOLY: Kapitola[] = [
     ["Kontakty", "U smlouvy lze přidat další osoby s funkcí (vedoucí pobočky, účetní…). Telefon a e-mail jsou klikací."],
     ["Zaplaceno", "Do napojení banky se úhrada zapíše tlačítkem „Zaplaceno“ u měsíce (lze zadat i částečnou částku)."],
   ] },
+  { id: "kratkodobe", nadpis: "Krátkodobé pronájmy", odkaz: "/kratkodobe", body: [
+    ["Nastavení", "U nemovitosti dejte Upravit → Využití → „Krátkodobý pronájem“. Pak se objeví v kalendáři."],
+    ["Rezervace", "„+ Rezervace“ nebo klik na volný den v kalendáři. Překrývající se termíny aplikace nepustí."],
+    ["Peníze", "Ubytování, úklid, provize platformy, poplatek z pobytu a výplata. Výplata se bez vyplnění dopočítá (ubytování + úklid − provize)."],
+    ["Ukazatele", "Obsazenost, průměrná cena za noc, výplaty v měsíci. Výnos se započítá i do výnosnosti nemovitosti."],
+    ["Poplatek z pobytu", "Přehled za čtvrtletí po obcích – podklad pro hlášení a odvod obci."],
+  ] },
   { id: "finance", nadpis: "Finance", odkaz: "/finance", body: [
     ["Přehled", "Příjmy a náklady po měsících a struktura nákladů."],
     ["Dlužníci", "Kdo dluží a jak dlouho (0–30, 31–60, 61–90, 90+ dní)."],

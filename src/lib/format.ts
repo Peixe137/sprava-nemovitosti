@@ -11,7 +11,7 @@ export const STAVY_NEMOVITOSTI: Record<string, string> = {
 };
 /** Jak se nemovitost využívá. Pronajato / volné se počítá ze smluv, nevyplňuje se. */
 export const VYUZITI: Record<string, string> = {
-  pronajem: "K pronájmu", vlastni: "Vlastní užívání", rekonstrukce: "Rekonstrukce", bez_vyuziti: "Bez využití",
+  pronajem: "K pronájmu", kratkodoby: "Krátkodobý pronájem (Airbnb…)", vlastni: "Vlastní užívání", rekonstrukce: "Rekonstrukce", bez_vyuziti: "Bez využití",
 };
 export const PERIODY: Record<string, string> = {
   mesicne: "měsíčně", ctvrtletne: "čtvrtletně", pololetne: "pololetně", rocne: "ročně",
@@ -40,4 +40,11 @@ export const zaDni = (n: number) => new Date(Date.now() + n * 86400000).toISOStr
 
 export const DUVODY_ARCHIVACE: Record<string, string> = {
   prodano: "Prodáno", konec_spravy: "Ukončena správa (odešel klient)", zbourano: "Zbouráno / zaniklo", jine: "Jiný důvod",
+};
+
+export const PLATFORMY: Record<string, { text: string; barva: string; svetla: string }> = {
+  airbnb: { text: "Airbnb", barva: "bg-rose-500", svetla: "bg-rose-50 text-rose-700" },
+  booking: { text: "Booking", barva: "bg-blue-600", svetla: "bg-blue-50 text-blue-700" },
+  primo: { text: "Přímo", barva: "bg-emerald-500", svetla: "bg-emerald-50 text-emerald-700" },
+  jine: { text: "Jiné", barva: "bg-violet-500", svetla: "bg-violet-50 text-violet-700" },
 };

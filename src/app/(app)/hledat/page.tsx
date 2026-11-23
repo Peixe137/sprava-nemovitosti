@@ -4,7 +4,7 @@ import { Nadpis } from "@/components/Chyba";
 
 const SKUPINY: [string, string][] = [
   ["nemovitost", "Nemovitosti"], ["katastr", "Katastr"], ["osoba", "Nájemníci a kontakty"], ["vlastnik", "Vlastníci"],
-  ["smlouva", "Nájemní smlouvy"], ["platba", "Platby"], ["naklad", "Náklady"], ["dokument", "Dokumenty"],
+  ["smlouva", "Nájemní smlouvy"], ["rezervace", "Krátkodobé rezervace"], ["platba", "Platby"], ["naklad", "Náklady"], ["dokument", "Dokumenty"],
 ];
 type Vysledek = { druh: string; id: string; titulek: string | null; popis: string | null; odkaz: string };
 
