@@ -2,6 +2,9 @@ import Link from "next/link";
 import { STAVY_NEMOVITOSTI, VYUZITI } from "@/lib/format";
 import { RuianAdresa } from "@/components/RuianAdresa";
 import { Odeslat } from "@/components/Odeslat";
+import { PatriPod } from "@/components/PatriPod";
+import { CisloJednotky } from "@/components/CisloJednotky";
+import { datum } from "@/lib/format";
 
 type Zaznam = Record<string, string | number | null | undefined>;
 type Props = {
@@ -10,7 +13,9 @@ type Props = {
   typy: { kod: string; nazev: string }[];
   vlastnici: { id: string; nazev: string; zkratka: string | null }[];
   budovy: { id: string; nazev: string }[];
-  rodic?: { id: string; nazev: string; drive_folder_url: string | null } | null; // vyplněno = formulář jednotky pod budovou
+  // vyplněno = formulář jednotky pod budovou; údaje níže se z budovy propisují
+  rodic?: { id: string; nazev: string; drive_folder_url: string | null; ulice?: string | null; cislo_popisne?: string | null; obec?: string | null;
+    katastralni_uzemi?: string | null; lv?: string | null; datum_porizeni?: string | null; vlastnici?: string } | null;
   v?: Zaznam;              // výchozí hodnoty (úprava)
   vlastnictvi?: { vlastnik_id: string; podil_citatel: number; podil_jmenovatel: number } | null;
   vice_vlastniku?: boolean;
@@ -40,7 +45,16 @@ export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rod
     return (
       <form action={akce} className="karta max-w-3xl space-y-5">
         <input type="hidden" name="nadrazena_id" value={rodic.id} />
-        <p className="text-sm text-slate-600">Jednotka v budově <b>{rodic.nazev}</b>. Adresa, katastr, vlastník a pořizovací cena se berou z budovy.</p>
+        <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm">
+          <div className="mb-1 text-slate-600">Jednotka v budově <b>{rodic.nazev}</b>. Z budovy se propisuje (a při změně budovy aktualizuje):</div>
+          <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+            <div><dt className="inline text-slate-500">Vlastník: </dt><dd className="inline">{rodic.vlastnici || "–"}</dd></div>
+            <div><dt className="inline text-slate-500">Adresa: </dt><dd className="inline">{[rodic.ulice, rodic.cislo_popisne, rodic.obec].filter(Boolean).join(" ") || "–"}</dd></div>
+            <div><dt className="inline text-slate-500">Katastr: </dt><dd className="inline">{[rodic.katastralni_uzemi, rodic.lv && "LV " + rodic.lv].filter(Boolean).join(", ") || "–"}</dd></div>
+            <div><dt className="inline text-slate-500">Datum pořízení: </dt><dd className="inline">{datum(rodic.datum_porizeni)}</dd></div>
+          </dl>
+          <div className="mt-1 text-xs text-slate-500">Pořizovací cena a tržní hodnota se vedou jen u budovy.</div>
+        </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block"><span className="stitek">Typ</span>
             <select name="typ_kod" defaultValue={String(v?.typ_kod ?? "J")} className="pole">
@@ -48,11 +62,12 @@ export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rod
             </select></label>
           <div className="sm:col-span-2"><Pole name="nazev" label="Název jednotky (= název podsložky)" required placeholder="NP001 (Pošta)" v={v} /></div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-3">
           {Stav}
           <Pole name="plocha_m2" label="Plocha m²" inputMode="decimal" v={v} />
-          <Pole name="kod_jednotky" label="Číslo pro VS (3 číslice)" inputMode="numeric" maxLength={3} pattern="[0-9]{1,3}"
-            placeholder="201 = 2. patro, j. 01" v={v} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <CisloJednotky patro={v?.patro != null ? Number(v.patro) : null} kod={v?.kod_jednotky != null ? String(v.kod_jednotky) : null} />
         </div>
         {!uprava && <Pole name="cislo_jednotky" label="Č. jednotky v katastru (je-li vymezena)" placeholder="147/1" />}
         {Upozorneni}
@@ -74,10 +89,7 @@ export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rod
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block"><span className="stitek">Patří pod (areál)</span>
-          <select name="nadrazena_id" defaultValue={String(v?.nadrazena_id ?? "")} className="pole">
-            <option value="">— nepatří pod žádnou budovu ani areál —</option>
-            {budovy.filter((b) => b.id !== v?.id).map((x) => <option key={x.id} value={x.id}>{x.nazev}</option>)}
-          </select></label>
+          <PatriPod budovy={budovy.filter((b) => b.id !== v?.id)} vychozi={String(v?.nadrazena_id ?? "")} prepnout={!uprava} /></label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {Stav}

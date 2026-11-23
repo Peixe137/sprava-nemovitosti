@@ -7,7 +7,7 @@ export const mesic = (v: string | null | undefined) =>
 
 /** Fáze nemovitosti v portfoliu. Prodej / konec správy = archivace. Vlastní × ve správě plyne z vlastníka. */
 export const STAVY_NEMOVITOSTI: Record<string, string> = {
-  v_nakupu: "Nákup (v přípravě)", drzeni: "Držení", v_prodeji: "V prodeji",
+  v_nakupu: "Nákup (v přípravě)", drzeni: "Držení", flip: "Flip (koupeno k prodeji)", v_prodeji: "V prodeji",
 };
 /** Jak se nemovitost využívá. Pronajato / volné se počítá ze smluv, nevyplňuje se. */
 export const VYUZITI: Record<string, string> = {

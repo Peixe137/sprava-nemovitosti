@@ -16,11 +16,13 @@ export default async function UpravitNemovitost({ params, searchParams }: PagePr
     supabase.from("typ_nemovitosti").select("kod, nazev").order("kod"),
     supabase.from("nemovitost").select("id, nazev").is("nadrazena_id", null).is("archivovano_dne", null).order("nazev"),
     supabase.from("vlastnik").select("id, nazev, zkratka").order("nazev"),
-    x.nadrazena_id ? supabase.from("nemovitost").select("id, nazev, drive_folder_url").eq("id", x.nadrazena_id).maybeSingle() : Promise.resolve({ data: null }),
+    x.nadrazena_id ? supabase.from("nemovitost").select("id, nazev, drive_folder_url, ulice, cislo_popisne, obec, katastralni_uzemi, lv, datum_porizeni, vlastnictvi(vlastnik(nazev, zkratka))").eq("id", x.nadrazena_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const vl = (x.vlastnictvi ?? []) as { vlastnik_id: string; podil_citatel: number; podil_jmenovatel: number }[];
   // jednotka = má nadřazenou budovu a sama nemá podřízené; areál s podřízenou budovou se upravuje plným formulářem
-  const jednotka = rodic.data && ["J", "N", "O"].includes(x.typ_kod) ? rodic.data : null;
+  const r = rodic.data as (typeof rodic.data & { vlastnictvi?: { vlastnik: { nazev: string } | null }[] }) | null;
+  const jednotka = r && ["J", "N", "O"].includes(x.typ_kod)
+    ? { ...r, vlastnici: ((r.vlastnictvi ?? []) as unknown as { vlastnik: { nazev: string } | null }[]).map((v) => v.vlastnik?.nazev).filter(Boolean).join(", ") } : null;
 
   return (
     <>

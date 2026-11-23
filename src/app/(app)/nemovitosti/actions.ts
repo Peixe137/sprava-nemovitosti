@@ -9,7 +9,7 @@ const n = (f: FormData, k: string) => { const v = t(f, k); return v == null ? nu
 // pole společná pro založení i úpravu
 function udaje(f: FormData) {
   return {
-    typ_kod: t(f, "typ_kod"), nazev: t(f, "nazev"), nadrazena_id: t(f, "nadrazena_id"), stav: t(f, "stav") ?? "drzeni", vyuziti: t(f, "vyuziti") ?? "pronajem", upozorneni: t(f, "upozorneni"), kod_jednotky: t(f, "kod_jednotky"),
+    typ_kod: t(f, "typ_kod"), nazev: t(f, "nazev"), nadrazena_id: t(f, "nadrazena_id"), stav: t(f, "stav") ?? "drzeni", vyuziti: t(f, "vyuziti") ?? "pronajem", upozorneni: t(f, "upozorneni"), kod_jednotky: t(f, "kod_jednotky"), patro: n(f, "patro"),
     katastralni_uzemi: t(f, "katastralni_uzemi"), lv: t(f, "lv"), parcelni_cislo: t(f, "parcelni_cislo"),
     cislo_popisne: t(f, "cislo_popisne"), ulice: t(f, "ulice"), obec: t(f, "obec"), psc: t(f, "psc"),
     plocha_m2: n(f, "plocha_m2"), porizovaci_cena: n(f, "porizovaci_cena"), datum_porizeni: t(f, "datum_porizeni"),
@@ -88,7 +88,7 @@ export async function upravitNemovitost(id: string, f: FormData) {
   // formulář jednotky neposílá adresu, katastr ani ceny – ty se nemění
   const jednotka = !f.has("katastralni_uzemi");
   const zmeny = jednotka
-    ? { typ_kod: z.typ_kod, nazev: z.nazev, stav: z.stav, vyuziti: z.vyuziti, upozorneni: z.upozorneni, kod_jednotky: z.kod_jednotky, plocha_m2: z.plocha_m2, drive_folder_url: z.drive_folder_url, poznamka: z.poznamka }
+    ? { typ_kod: z.typ_kod, nazev: z.nazev, stav: z.stav, vyuziti: z.vyuziti, upozorneni: z.upozorneni, kod_jednotky: z.kod_jednotky, patro: z.patro, plocha_m2: z.plocha_m2, drive_folder_url: z.drive_folder_url, poznamka: z.poznamka }
     : z;
   if (z.nadrazena_id === id && !jednotka) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent("Nemovitost nemůže patřit sama pod sebe.")}`);
   const { error } = await supabase.from("nemovitost").update(zmeny).eq("id", id);
@@ -102,6 +102,15 @@ export async function upravitNemovitost(id: string, f: FormData) {
       if (vlastnik) await supabase.from("vlastnictvi").insert({
         nemovitost_id: id, vlastnik_id: vlastnik, podil_citatel: n(f, "podil_citatel") ?? 1, podil_jmenovatel: n(f, "podil_jmenovatel") ?? 1,
       });
+      // vlastník budovy se propíše do jejích jednotek
+      const { data: deti } = await supabase.from("nemovitost").select("id").eq("nadrazena_id", id);
+      const ids = (deti ?? []).map((d) => d.id);
+      if (ids.length) {
+        await supabase.from("vlastnictvi").delete().in("nemovitost_id", ids);
+        if (vlastnik) await supabase.from("vlastnictvi").insert(ids.map((nid) => ({
+          nemovitost_id: nid, vlastnik_id: vlastnik, podil_citatel: n(f, "podil_citatel") ?? 1, podil_jmenovatel: n(f, "podil_jmenovatel") ?? 1,
+        })));
+      }
     }
   }
   revalidatePath("/nemovitosti");
