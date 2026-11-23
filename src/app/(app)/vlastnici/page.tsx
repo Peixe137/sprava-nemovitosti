@@ -2,6 +2,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { DRUHY_VLASTNIKA } from "@/lib/format";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatVlastnika } from "./actions";
+import { AresTlacitko } from "@/components/AresTlacitko";
 
 export default async function Vlastnici({ searchParams }: PageProps<"/vlastnici">) {
   const { chyba } = await searchParams;
@@ -34,6 +35,10 @@ export default async function Vlastnici({ searchParams }: PageProps<"/vlastnici"
 
         <form action={pridatVlastnika} className="karta space-y-3">
           <h2 className="font-semibold">Přidat vlastníka</h2>
+          <div className="grid grid-cols-2 items-end gap-3">
+            <label className="block"><span className="stitek">IČO</span><input name="ico" inputMode="numeric" className="pole" /></label>
+            <AresTlacitko mapovani={{ nazev: "nazev", dic: "dic", adresa: "adresa", pravni_forma: "pravni_forma", platce_dph: "platce_dph", ico: "ico" }} />
+          </div>
           <label className="block"><span className="stitek">Název / jméno</span><input name="nazev" required className="pole" /></label>
           <label className="block"><span className="stitek">Druh</span>
             <select name="druh" className="pole">{Object.entries(DRUHY_VLASTNIKA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -42,8 +47,11 @@ export default async function Vlastnici({ searchParams }: PageProps<"/vlastnici"
             <label className="block"><span className="stitek">Forma</span>
               <select name="pravni_forma" className="pole"><option value="PO">Právnická osoba</option><option value="FO">Fyzická osoba</option></select></label>
           </div>
-          <label className="block"><span className="stitek">IČO</span><input name="ico" className="pole" /></label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="platce_dph" /> Plátce DPH</label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block"><span className="stitek">DIČ</span><input name="dic" className="pole" /></label>
+            <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" name="platce_dph" /> Plátce DPH</label>
+          </div>
+          <label className="block"><span className="stitek">Adresa / sídlo</span><input name="adresa" className="pole" /></label>
           <label className="block"><span className="stitek">E-mail</span><input name="email" type="email" className="pole" /></label>
           <label className="block"><span className="stitek">Telefon</span><input name="telefon" className="pole" /></label>
           <button className="tlacitko">Uložit</button>
