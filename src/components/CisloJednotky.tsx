@@ -1,8 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-/** Patro + pořadí na patře → trojmístné číslo jednotky pro VS (2. patro, j. 01 → 201). Číslo jde přepsat ručně. */
-export function CisloJednotky({ patro: p0, kod: k0 }: { patro?: number | null; kod?: string | null }) {
+/** Patro + pořadí na patře → číslo jednotky (2. patro, j. 01 → 201) a označení s č.p. budovy (147-201).
+ *  Číslo jde přepsat ručně; z označení se dá složit název jednotky. */
+export function CisloJednotky({ patro: p0, kod: k0, cp }: { patro?: number | null; kod?: string | null; cp?: string | null }) {
+  const ref = useRef<HTMLDivElement>(null);
   const [patro, setPatro] = useState(p0 != null ? String(p0) : "");
   const [poradi, setPoradi] = useState(k0 && k0.length === 3 ? k0.slice(1) : "");
   const [kod, setKod] = useState(k0 ?? "");
@@ -11,6 +13,14 @@ export function CisloJednotky({ patro: p0, kod: k0 }: { patro?: number | null; k
     if (rucne) return;
     const pn = Number(p);
     if (p !== "" && j !== "" && pn >= 0 && pn <= 9) setKod(`${pn}${j.padStart(2, "0").slice(-2)}`);
+  };
+  const oznaceni = kod ? (cp ? `${cp}-${kod.padStart(3, "0")}` : kod.padStart(3, "0")) : "";
+  const doNazvu = () => {
+    const pole = ref.current?.closest("form")?.querySelector<HTMLInputElement>('input[name="nazev"]');
+    if (!pole) return;
+    const popis = pole.value.match(/\(.*\)\s*$/)?.[0];   // ponechá „(Pošta)“
+    pole.value = popis ? `${oznaceni} ${popis}` : `${oznaceni} ()`;
+    pole.focus();
   };
   return (
     <>
@@ -23,6 +33,11 @@ export function CisloJednotky({ patro: p0, kod: k0 }: { patro?: number | null; k
       <label className="block"><span className="stitek">Číslo jednotky (VS)</span>
         <input name="kod_jednotky" inputMode="numeric" maxLength={3} pattern="[0-9]{1,3}" value={kod} placeholder="201"
           onChange={(e) => { setRucne(true); setKod(e.target.value.replace(/\D/g, "")); }} className="pole" /></label>
+      <div ref={ref} className="text-sm text-slate-600 sm:col-span-3">
+        {oznaceni ? <>Označení jednotky: <b>{oznaceni}</b>
+          <button type="button" onClick={doNazvu} className="ml-3 text-blue-700 hover:underline">použít do názvu</button></>
+          : <span className="text-slate-400">Označení = č.p. budovy-patro a jednotka, např. 147-101</span>}
+      </div>
     </>
   );
 }

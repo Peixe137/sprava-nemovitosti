@@ -1,3 +1,4 @@
+import { AresTlacitko } from "@/components/AresTlacitko";
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Odeslat } from "@/components/Odeslat";
@@ -97,6 +98,22 @@ export default async function Naklady({ searchParams }: PageProps<"/finance/nakl
               <option value="">—</option>
               {(dodavatele.data ?? []).map((d) => <option key={d.id} value={d.id}>{d.nazev_firmy ?? `${d.prijmeni} ${d.jmeno ?? ""}`}</option>)}
             </select></label>
+          <details className="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm">
+            <summary className="cursor-pointer text-blue-700">+ Nový dodavatel (není v seznamu)</summary>
+            <div className="mt-3 grid gap-2">
+              <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                <label className="block"><span className="stitek">IČO</span><input name="novy_ico" inputMode="numeric" className="pole" /></label>
+                <AresTlacitko icoPole="novy_ico" mapovani={{ nazev: "novy_nazev", adresa: "novy_adresa" }} />
+              </div>
+              <label className="block"><span className="stitek">Název / jméno</span><input name="novy_nazev" className="pole" placeholder="vyplněno = použije se místo výběru výše" /></label>
+              <input type="hidden" name="novy_adresa" />
+              <div className="grid grid-cols-2 gap-2">
+                <input name="novy_telefon" placeholder="Telefon" className="pole" />
+                <input name="novy_email" type="email" placeholder="E-mail" className="pole" />
+              </div>
+              <input name="novy_obor" placeholder="Obor (instalatér, elektro, správa…)" className="pole" />
+            </div>
+          </details>
           <label className="block"><span className="stitek">Přeúčtovat nájemníkům ve vyúčtování</span>
             <select name="sluzba_vyuctovani" className="pole">
               <option value="">Ne – nese vlastník</option>

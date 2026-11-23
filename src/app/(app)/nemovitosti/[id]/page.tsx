@@ -12,7 +12,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
   const { chyba, uprav } = await searchParams;
   const supabase = await supabaseServer();
   const { data: x } = await supabase.from("nemovitost")
-    .select("*, typ:typ_nemovitosti(nazev), nadrazena:nadrazena_id(id, nazev, drive_folder_url), vlastnictvi(podil_citatel, podil_jmenovatel, vlastnik(nazev, zkratka))")
+    .select("*, typ:typ_nemovitosti(nazev), nadrazena:nadrazena_id(id, nazev, drive_folder_url, cislo_popisne), vlastnictvi(podil_citatel, podil_jmenovatel, vlastnik(nazev, zkratka))")
     .eq("id", id).maybeSingle();
   if (!x) notFound();
 
@@ -41,7 +41,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
     ["Fáze", STAVY_NEMOVITOSTI[x.stav] ?? x.stav],
     ["Využití", [VYUZITI[x.vyuziti], obsazenost].filter(Boolean).join(" · ")],
     ...(x.patro != null ? [["Patro", x.patro === 0 ? "přízemí" : `${x.patro}.`] as [string, string]] : []),
-    ...(x.kod_jednotky ? [["Číslo jednotky (VS)", x.kod_jednotky] as [string, string]] : []),
+    ...(x.kod_jednotky ? [["Označení jednotky", `${x.nadrazena?.cislo_popisne ? x.nadrazena.cislo_popisne + "-" : ""}${String(x.kod_jednotky).padStart(3, "0")}`] as [string, string]] : []),
     ["Katastr", [x.katastralni_uzemi, x.lv && "LV " + x.lv, x.parcelni_cislo && "parc. " + x.parcelni_cislo].filter(Boolean).join(", ") || "–"],
     ["Adresa", ([x.ulice, x.cislo_popisne, x.obec, x.psc].filter(Boolean).join(" ") || "–") + (x.nadrazena ? " (z budovy)" : "")],
     ["Plocha", x.plocha_m2 ? `${x.plocha_m2} m²` : "–"],

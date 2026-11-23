@@ -5,18 +5,27 @@
 }
 
 body {
-  background: #f6f7f9;
+  background: #ffffff;
   color: #1c2430;
 }
 
 @layer components {
-  .karta { @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm; }
-  .tlacitko { @apply inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50; }
+  .karta { @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)]; }
+  .tlacitko { @apply inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50; }
   .tlacitko-svetle { @apply inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50; }
-  .pole { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none; }
+  .pole { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none; }
   .stitek { @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500; }
   .tabulka { @apply w-full text-left text-sm; }
   .tabulka th { @apply border-b border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500; }
   .tabulka td { @apply border-b border-slate-100 px-3 py-2; }
   .odkaz { @apply font-medium text-blue-700 hover:underline; }
+  /* barevné čísla: kladné zeleně, záporné červeně */
+  .plus { @apply text-emerald-600; }
+  .minus { @apply text-rose-600; }
+  /* barevné dlaždice s ukazateli */
+  .dlazdice-modra { @apply rounded-2xl border p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] border-blue-100 bg-blue-50/60; }
+  .dlazdice-zelena { @apply rounded-2xl border p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] border-emerald-100 bg-emerald-50/60; }
+  .dlazdice-cervena { @apply rounded-2xl border p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] border-rose-100 bg-rose-50/60; }
+  .dlazdice-fialova { @apply rounded-2xl border p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] border-violet-100 bg-violet-50/60; }
+  .dlazdice-oranzova { @apply rounded-2xl border p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] border-amber-100 bg-amber-50/60; }
 }

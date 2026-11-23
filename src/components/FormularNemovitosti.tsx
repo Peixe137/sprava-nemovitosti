@@ -67,7 +67,7 @@ export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rod
           <Pole name="plocha_m2" label="Plocha m²" inputMode="decimal" v={v} />
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <CisloJednotky patro={v?.patro != null ? Number(v.patro) : null} kod={v?.kod_jednotky != null ? String(v.kod_jednotky) : null} />
+          <CisloJednotky cp={rodic.cislo_popisne ?? null} patro={v?.patro != null ? Number(v.patro) : null} kod={v?.kod_jednotky != null ? String(v.kod_jednotky) : null} />
         </div>
         {!uprava && <Pole name="cislo_jednotky" label="Č. jednotky v katastru (je-li vymezena)" placeholder="147/1" />}
         {Upozorneni}

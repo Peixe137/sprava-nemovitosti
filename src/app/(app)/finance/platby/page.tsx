@@ -30,7 +30,7 @@ export default async function Platby({ searchParams }: PageProps<"/finance/platb
 
   const Filtr = ({ k, text }: { k?: string; text: string }) => (
     <Link href={k ? `/finance/platby?filtr=${k}` : "/finance/platby"}
-      className={`rounded-lg px-3 py-1.5 text-sm ${filtr === k || (!k && !filtr) ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}>{text}</Link>
+      className={`rounded-lg px-3 py-1.5 text-sm ${filtr === k || (!k && !filtr) ? "bg-blue-600 text-white" : "border border-slate-300 bg-white"}`}>{text}</Link>
   );
 
   return (
@@ -61,7 +61,7 @@ export default async function Platby({ searchParams }: PageProps<"/finance/platb
                   <td>{r.protiucet_nazev ?? "–"}<div className="text-xs text-slate-500">{r.protiucet ? `${r.protiucet}/${r.protiucet_banka}` : ""}</div></td>
                   <td>{r.vs ?? "–"}</td>
                   <td className="max-w-xs truncate">{r.zprava ?? ""}</td>
-                  <td className={`text-right font-medium ${Number(r.castka) < 0 ? "text-slate-600" : "text-green-700"}`}>{korun(r.castka)}</td>
+                  <td className={`text-right font-medium ${Number(r.castka) < 0 ? "minus" : "plus"}`}>{korun(r.castka)}</td>
                   <td>{Number(r.castka) > 0 && <span className={`rounded-full px-2 py-0.5 text-xs ${barva}`}>{text}</span>}</td>
                 </tr>);
             })}</tbody>

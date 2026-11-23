@@ -15,9 +15,20 @@ export async function pridatNaklad(f: FormData) {
   const zaklad = sDph && sazba > 0 ? Math.round((castka / (1 + sazba / 100)) * 100) / 100 : castka;
   const dph = Math.round((castka - zaklad) * 100) / 100;
 
+  // nový dodavatel zadaný přímo ve formuláři má přednost před výběrem
+  let dodavatel = t(f, "dodavatel_id");
+  if (t(f, "novy_nazev")) {
+    const { data: d, error: ed } = await supabase.from("osoba").insert({
+      druh: t(f, "novy_ico") ? "PO" : "FO", nazev_firmy: t(f, "novy_nazev"), ico: t(f, "novy_ico"), adresa: t(f, "novy_adresa"),
+      telefon: t(f, "novy_telefon"), email: t(f, "novy_email"), je_dodavatel: true,
+      poznamka: t(f, "novy_obor") ? `Obor: ${t(f, "novy_obor")}` : null,
+    }).select("id").single();
+    if (ed) redirect(`/finance/naklady?chyba=${encodeURIComponent("Dodavatel: " + ed.message)}`);
+    dodavatel = d.id;
+  }
   const { error } = await supabase.from("naklad").insert({
     nemovitost_id: t(f, "nemovitost_id"), kategorie: t(f, "kategorie"), datum: t(f, "datum"),
-    castka_bez_dph: zaklad, dph, dodavatel_id: t(f, "dodavatel_id"),
+    castka_bez_dph: zaklad, dph, dodavatel_id: dodavatel,
     sluzba_vyuctovani: t(f, "sluzba_vyuctovani"), poznamka: t(f, "poznamka"),
   });
   if (error) redirect(`/finance/naklady?chyba=${encodeURIComponent(error.message)}`);

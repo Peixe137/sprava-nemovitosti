@@ -74,23 +74,23 @@ export default async function Prehled() {
       </section>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="karta">
+        <div className="dlazdice-modra">
           <div className="stitek">Obsazenost</div>
           <div className="text-2xl font-semibold">{procento} %</div>
-          <div className="mt-2 h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-slate-900" style={{ width: `${procento}%` }} /></div>
+          <div className="mt-2 h-1.5 rounded-full bg-white"><div className="h-1.5 rounded-full bg-blue-500" style={{ width: `${procento}%` }} /></div>
           <div className="mt-1 text-xs text-slate-500">{pocetObsazenych} pronajato · {volne.length} volných</div>
         </div>
-        <Link href="/smlouvy" className="karta hover:border-slate-300">
+        <Link href="/smlouvy" className="dlazdice-fialova hover:border-violet-300">
           <div className="stitek">Aktivní smlouvy</div>
           <div className="text-2xl font-semibold">{(smlouvy.data ?? []).length}</div>
           <div className="text-xs text-slate-500">{koncici.length} končí do 90 dní</div>
         </Link>
-        <Link href="/finance/dluznici" className="karta hover:border-slate-300">
+        <Link href="/finance/dluznici" className={`${dluhCelkem ? "dlazdice-cervena hover:border-rose-300" : "dlazdice-zelena hover:border-emerald-300"}`}>
           <div className="stitek">Dluží celkem</div>
-          <div className={`text-2xl font-semibold ${dluhCelkem ? "text-red-700" : ""}`}>{korun(dluhCelkem)}</div>
+          <div className={`text-2xl font-semibold ${dluhCelkem ? "minus" : "plus"}`}>{korun(dluhCelkem)}</div>
           <div className="text-xs text-slate-500">{kriticti} déle než 90 dní</div>
         </Link>
-        <div className="karta">
+        <div className="dlazdice-oranzova">
           <div className="stitek mb-2">Rychlé akce</div>
           <div className="flex flex-col gap-1 text-sm">
             <Link href="/smlouvy/nova" className="odkaz">+ Nová nájemní smlouva</Link>

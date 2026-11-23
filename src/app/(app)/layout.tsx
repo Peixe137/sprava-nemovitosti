@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b border-slate-200 bg-white md:w-60 md:border-r md:border-b-0">
+      <aside className="border-b border-slate-200 bg-slate-50/70 md:w-60 md:border-r md:border-b-0">
         <div className="p-5">
           <div className="text-lg font-semibold">Správa nemovitostí</div>
           <div className="truncate text-xs text-slate-500">{org?.nazev}</div>
