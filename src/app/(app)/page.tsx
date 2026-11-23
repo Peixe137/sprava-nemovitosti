@@ -12,12 +12,13 @@ const TON = {
 export default async function Prehled() {
   const supabase = await supabaseServer();
   const dnes = dnesIso();
-  const [dluhy, nemovitosti, smlouvy, terminy, org] = await Promise.all([
+  const [dluhy, nemovitosti, smlouvy, terminy, org, zadosti] = await Promise.all([
     supabase.from("v_dluznici").select("smlouva_id, najemnik, nemovitost, dluh, dni_po_splatnosti"),
     supabase.from("nemovitost").select("id, nadrazena_id, typ_kod, nazev, stav, vyuziti").is("archivovano_dne", null),
     supabase.from("najemni_smlouva").select("id, nemovitost_id, datum_od, datum_do, variabilni_symbol, stav").eq("stav", "aktivni"),
     supabase.from("v_terminy").select("*").order("datum").limit(10),
     supabase.from("organizace").select("nazev").limit(1).maybeSingle(),
+    supabase.from("zadost_smazani").select("id", { count: "exact", head: true }).eq("stav", "navrh"),
   ]);
 
   // dlužníci po smlouvách
@@ -44,6 +45,7 @@ export default async function Prehled() {
   const prosle = (terminy.data ?? []).filter((t) => t.datum < dnes);
 
   const upozorneni: Upozorneni[] = [];
+  if (zadosti.count) upozorneni.push({ text: `${zadosti.count}× žádost o smazání ke schválení`, href: "/nastaveni/schvaleni", ton: "oranzova" });
   if (dluznici.length) upozorneni.push({ text: `${dluznici.length}× nezaplacené nájemné (${korun(dluhCelkem)})`, href: "/finance/dluznici", ton: "cervena" });
   if (prosle.length) upozorneni.push({ text: `${prosle.length}× prošlý termín nebo revize`, href: "#terminy", ton: "oranzova" });
   if (koncici.length) upozorneni.push({ text: `${koncici.length}× smlouva končí do 90 dní`, href: "/smlouvy", ton: "oranzova" });

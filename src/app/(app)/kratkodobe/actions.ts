@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
+import { mojeRole, navrhnoutSmazani, NAVRZENO } from "@/lib/role";
 
 const t = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
 const n = (f: FormData, k: string) => { const v = t(f, k); return v == null ? null : Number(v.replace(/\s/g, "").replace(",", ".")); };
@@ -43,6 +44,12 @@ export async function ulozitRezervaci(id: string | null, f: FormData) {
 export async function smazatRezervaci(id: string, f: FormData) {
   if (f.get("potvrzeni") !== "on") redirect(`/kratkodobe/${id}`);
   const supabase = await supabaseServer();
+  if (await mojeRole(supabase) !== "majitel") {
+    const { data: r } = await supabase.from("rezervace").select("host, prijezd, odjezd").eq("id", id).single();
+    const e = await navrhnoutSmazani(supabase, { tabulka: "rezervace", id, odkaz: `/kratkodobe/${id}`,
+      popis: `Rezervace ${r?.host ?? ""} ${r?.prijezd ?? ""}–${r?.odjezd ?? ""}` });
+    redirect(`/kratkodobe/${id}?${e ? `chyba=${encodeURIComponent(e)}` : `zprava=${encodeURIComponent(NAVRZENO)}`}`);
+  }
   await supabase.from("rezervace").delete().eq("id", id);
   revalidatePath("/kratkodobe");
   redirect("/kratkodobe");

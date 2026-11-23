@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
 import { lvAJednotka, cisloSmlouvy } from "@/lib/jednotka";
+import { mojeRole, navrhnoutSmazani, NAVRZENO } from "@/lib/role";
 
 const t = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
 const n = (f: FormData, k: string) => { const v = t(f, k); return v == null ? null : Number(v.replace(/\s/g, "").replace(",", ".")); };
@@ -108,6 +109,12 @@ export async function ukoncitPolozku(smlouvaId: string, id: string, f: FormData)
 
 export async function smazatPolozku(smlouvaId: string, id: string) {
   const supabase = await supabaseServer();
+  if (await mojeRole(supabase) !== "majitel") {
+    const { data: p } = await supabase.from("predpis_polozka").select("druh, castka, platnost_od").eq("id", id).single();
+    const e = await navrhnoutSmazani(supabase, { tabulka: "predpis_polozka", id, odkaz: `/smlouvy/${smlouvaId}`,
+      popis: `Položka předpisu ${p?.druh ?? ""} ${p?.castka ?? ""} Kč od ${p?.platnost_od ?? ""}` });
+    redirect(`/smlouvy/${smlouvaId}?${e ? `chyba=${encodeURIComponent(e)}` : `zprava=${encodeURIComponent(NAVRZENO)}`}`);
+  }
   const { error } = await supabase.from("predpis_polozka").delete().eq("id", id);
   zpet(smlouvaId, error?.message ?? await prepocitat(supabase, smlouvaId));
 }

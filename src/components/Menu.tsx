@@ -13,9 +13,11 @@ const SEKCE: Sekce[] = [
     { href: "/finance", text: "Přehled" }, { href: "/finance/dluznici", text: "Dlužníci" },
     { href: "/finance/platby", text: "Platby" }, { href: "/finance/naklady", text: "Náklady" },
   ] },
-  { nadpis: "Systém", barva: "bg-slate-400", polozky: [{ href: "/napoveda", text: "Nápověda" }] },
+  { nadpis: "Systém", barva: "bg-slate-400", polozky: [
+    { href: "/nastaveni/uzivatele", text: "Uživatelé" }, { href: "/nastaveni/schvaleni", text: "Ke schválení" }, { href: "/napoveda", text: "Nápověda" },
+  ] },
   { nadpis: "Připravujeme", pripravujeme: true, polozky: [
-    { href: "#", text: "Revize a termíny" }, { href: "#", text: "Údržba" }, { href: "#", text: "Nastavení" },
+    { href: "#", text: "Revize a termíny" }, { href: "#", text: "Údržba" },
   ] },
 ];
 

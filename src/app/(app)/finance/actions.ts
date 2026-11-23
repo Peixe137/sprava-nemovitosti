@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
+import { mojeRole, navrhnoutSmazani, NAVRZENO } from "@/lib/role";
 
 const t = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
 const n = (f: FormData, k: string) => { const v = t(f, k); return v == null ? null : Number(v.replace(/\s/g, "").replace(",", ".")); };
@@ -38,6 +39,12 @@ export async function pridatNaklad(f: FormData) {
 
 export async function smazatNaklad(id: string) {
   const supabase = await supabaseServer();
+  if (await mojeRole(supabase) !== "majitel") {
+    const { data: x } = await supabase.from("naklad").select("datum, castka_celkem, poznamka").eq("id", id).single();
+    const e = await navrhnoutSmazani(supabase, { tabulka: "naklad", id, odkaz: "/finance/naklady",
+      popis: `Náklad ${x?.datum ?? ""} ${x?.castka_celkem ?? ""} Kč ${x?.poznamka ?? ""}` });
+    redirect(`/finance/naklady?${e ? `chyba=${encodeURIComponent(e)}` : `zprava=${encodeURIComponent(NAVRZENO)}`}`);
+  }
   await supabase.from("naklad").delete().eq("id", id);
   revalidatePath("/finance/naklady");
 }

@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
+import { mojeRole, navrhnoutSmazani, NAVRZENO } from "@/lib/role";
 
 const t = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
 const n = (f: FormData, k: string) => { const v = t(f, k); return v == null ? null : Number(v.replace(/\s/g, "").replace(",", ".")); };
@@ -125,6 +126,11 @@ export async function smazatNemovitost(id: string, f: FormData) {
     supabase.from("najemni_smlouva").select("id", { count: "exact", head: true }).eq("nemovitost_id", id),
   ]);
   if (jednotek || smluv) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent(`Nelze smazat: nemovitost má ${jednotek ?? 0} jednotek a ${smluv ?? 0} nájemních smluv.`)}`);
+  if (await mojeRole(supabase) !== "majitel") {
+    const { data: n } = await supabase.from("nemovitost").select("nazev").eq("id", id).single();
+    const e = await navrhnoutSmazani(supabase, { tabulka: "nemovitost", id, popis: `Nemovitost ${n?.nazev ?? ""}`, odkaz: `/nemovitosti/${id}` });
+    redirect(`/nemovitosti/${id}?${e ? `chyba=${encodeURIComponent(e)}` : `zprava=${encodeURIComponent(NAVRZENO)}`}`);
+  }
   const { error } = await supabase.from("nemovitost").delete().eq("id", id);
   if (error) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent(error.message)}`);
   revalidatePath("/nemovitosti");
@@ -157,6 +163,12 @@ export async function pridatKatastralniPolozku(nemovitostId: string, f: FormData
 
 export async function smazatKatastralniPolozku(nemovitostId: string, id: string) {
   const supabase = await supabaseServer();
+  if (await mojeRole(supabase) !== "majitel") {
+    const { data: k } = await supabase.from("katastralni_polozka").select("druh, cislo_parcely, cislo_popisne, cislo_jednotky").eq("id", id).single();
+    const e = await navrhnoutSmazani(supabase, { tabulka: "katastralni_polozka", id, odkaz: `/nemovitosti/${nemovitostId}#katastr`,
+      popis: `Katastr: ${k?.druh ?? ""} ${k?.cislo_parcely ?? k?.cislo_popisne ?? k?.cislo_jednotky ?? ""}` });
+    redirect(`/nemovitosti/${nemovitostId}?${e ? `chyba=${encodeURIComponent(e)}` : `zprava=${encodeURIComponent(NAVRZENO)}`}`);
+  }
   await supabase.from("katastralni_polozka").delete().eq("id", id);
   revalidatePath(`/nemovitosti/${nemovitostId}`);
 }

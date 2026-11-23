@@ -38,6 +38,13 @@ const KAPITOLY: Kapitola[] = [
     ["Ukazatele", "Obsazenost, průměrná cena za noc, výplaty v měsíci. Výnos se započítá i do výnosnosti nemovitosti."],
     ["Poplatek z pobytu", "Přehled za čtvrtletí po obcích – podklad pro hlášení a odvod obci."],
   ] },
+  { id: "role", nadpis: "Uživatelé a role", odkaz: "/nastaveni/uzivatele", body: [
+    ["Administrátor", "Vše včetně mazání, správy uživatelů a schvalování."],
+    ["Správce", "Zakládá a upravuje. Smazání jen navrhne – žádost čeká v Systém → Ke schválení."],
+    ["Účetní", "Upravuje platby, náklady, předpisy a vyúčtování; ostatní jen čte."],
+    ["Host", "Jen čtení."],
+    ["Přidání člověka", "Nejdřív pozvánka v Supabase (Authentication → Users → Invite user), pak Systém → Uživatelé → Přidat."],
+  ] },
   { id: "finance", nadpis: "Finance", odkaz: "/finance", body: [
     ["Přehled", "Příjmy a náklady po měsících a struktura nákladů."],
     ["Dlužníci", "Kdo dluží a jak dlouho (0–30, 31–60, 61–90, 90+ dní)."],
