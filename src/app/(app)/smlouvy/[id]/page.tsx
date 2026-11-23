@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { DRUHY_PREDPISU, STAVY_POHLEDAVKY, korun, datum, mesic } from "@/lib/format";
+import { DRUHY_PREDPISU, STAVY_POHLEDAVKY, PERIODY, korun, datum, mesic } from "@/lib/format";
+import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
-import { doplnitPredpisy, zaplaceno } from "../actions";
+import { doplnitPredpisy, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt } from "../actions";
 
 export default async function DetailSmlouvy({ params, searchParams }: PageProps<"/smlouvy/[id]">) {
   const { id } = await params;
   const { chyba } = await searchParams;
   const supabase = await supabaseServer();
   const { data: s } = await supabase.from("najemni_smlouva")
-    .select("*, nemovitost(id, nazev), pronajimatel:pronajimatel_id(nazev), najemni_smlouva_osoba(role, osoba(*))")
+    .select("*, nemovitost(id, nazev), pronajimatel:pronajimatel_id(nazev), najemni_smlouva_osoba(role, funkce, poznamka, osoba(*))")
     .eq("id", id).maybeSingle();
   if (!s) notFound();
 
@@ -21,25 +22,53 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
   const dnes = new Date().toISOString().slice(0, 10);
   const dluh = (pohledavky.data ?? []).filter((p) => ["otevrena", "castecne"].includes(p.stav) && p.splatnost < dnes)
     .reduce((a, p) => a + Number(p.castka) - Number(p.uhrazeno), 0);
-  const osoby = s.najemni_smlouva_osoba as { role: string; osoba: { jmeno: string | null; prijmeni: string | null; nazev_firmy: string | null; email: string | null; telefon: string | null; preferovany_kanal: string } }[];
+  type Os = { role: string; funkce: string | null; poznamka: string | null; osoba: { id: string; jmeno: string | null; prijmeni: string | null; nazev_firmy: string | null; email: string | null; telefon: string | null; preferovany_kanal: string } };
+  const osoby = (s.najemni_smlouva_osoba as Os[]).sort((a, b) => (a.role === "najemce" ? -1 : 0) - (b.role === "najemce" ? -1 : 0));
+  const ROLE: Record<string, string> = { najemce: "Nájemce", spolunajemce: "Spolunájemce", rucitel: "Ručitel", kontakt: "Kontakt" };
+  const pristiMesic = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1, 1); return d.toISOString().slice(0, 10); })();
+  const tento = dnes.slice(0, 7);
 
   return (
     <>
       <Nadpis titulek={`Smlouva VS ${s.variabilni_symbol}`}
-        podtitulek={`${s.nemovitost?.nazev} · pronajímatel ${s.pronajimatel?.nazev}`}
+        podtitulek={`${s.cislo_smlouvy ? `č. ${s.cislo_smlouvy} · ` : ""}${s.nemovitost?.nazev} · pronajímatel ${s.pronajimatel?.nazev}`}
         akce={<form action={doplnitPredpisy.bind(null, id)}><button className="tlacitko-svetle">Doplnit platby do aktuálního měsíce</button></form>} />
       <Chyba text={chyba} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6">
           <section className="karta text-sm">
-            <h2 className="mb-3 font-semibold">Nájemník</h2>
-            {osoby.map((o, i) => (
-              <div key={i} className="mb-2">
-                <div className="font-medium">{o.osoba.nazev_firmy ?? `${o.osoba.jmeno ?? ""} ${o.osoba.prijmeni ?? ""}`}</div>
-                <div className="text-slate-600">{o.osoba.telefon ?? "bez telefonu"} · {o.osoba.email ?? "bez e-mailu"}</div>
-                <div className="text-xs text-slate-500">upozornění přes: {o.osoba.preferovany_kanal}</div>
-              </div>))}
+            <h2 className="mb-3 font-semibold">Nájemník a kontakty</h2>
+            <ul className="space-y-3">
+              {osoby.map((o) => (
+                <li key={o.osoba.id} className="group">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-medium">{o.osoba.nazev_firmy ?? `${o.osoba.jmeno ?? ""} ${o.osoba.prijmeni ?? ""}`}</span>
+                    <span className="text-xs text-slate-500">{o.funkce ?? ROLE[o.role]}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3">
+                    {o.osoba.telefon && <a href={`tel:${o.osoba.telefon.replace(/\s/g, "")}`} className="odkaz">☎ {o.osoba.telefon}</a>}
+                    {o.osoba.email && <a href={`mailto:${o.osoba.email}`} className="odkaz">✉ {o.osoba.email}</a>}
+                    {!o.osoba.telefon && !o.osoba.email && <span className="text-slate-400">bez kontaktu</span>}
+                  </div>
+                  {o.poznamka && <div className="text-xs text-slate-500">{o.poznamka}</div>}
+                  {o.role === "najemce" ? <div className="text-xs text-slate-500">upozornění přes: {o.osoba.preferovany_kanal}</div>
+                    : <form action={odebratKontakt.bind(null, id, o.osoba.id)}><button className="text-xs text-slate-400 hover:text-red-700">odebrat</button></form>}
+                </li>))}
+            </ul>
+            <details className="mt-4 border-t border-slate-100 pt-3">
+              <summary className="cursor-pointer text-blue-700">+ Přidat kontaktní osobu</summary>
+              <form action={pridatKontakt.bind(null, id)} className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input name="jmeno" placeholder="Jméno" className="pole" />
+                <input name="prijmeni" placeholder="Příjmení" className="pole" />
+                <input name="funkce" placeholder="Funkce (vedoucí pobočky, účetní…)" className="pole sm:col-span-2" />
+                <input name="telefon" placeholder="Telefon" className="pole" />
+                <input name="email" type="email" placeholder="E-mail" className="pole" />
+                <select name="role" className="pole"><option value="kontakt">Kontakt</option><option value="spolunajemce">Spolunájemce</option><option value="rucitel">Ručitel</option></select>
+                <input name="poznamka" placeholder="Co má na starosti" className="pole" />
+                <div className="sm:col-span-2"><Odeslat>Přidat</Odeslat></div>
+              </form>
+            </details>
           </section>
           <section className="karta text-sm">
             <h2 className="mb-3 font-semibold">Podmínky</h2>
@@ -51,12 +80,42 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
             </dl>
           </section>
           <section className="karta text-sm">
-            <h2 className="mb-3 font-semibold">Měsíční předpis</h2>
-            <table className="tabulka"><tbody>
-              {(predpis.data ?? []).map((p) => (
-                <tr key={p.id}><td>{DRUHY_PREDPISU[p.druh] ?? p.druh}<div className="text-xs text-slate-500">od {datum(p.platnost_od)}{p.platnost_do ? ` do ${datum(p.platnost_do)}` : ""}</div></td>
-                  <td className="text-right">{korun(p.castka)}</td></tr>))}
-            </tbody></table>
+            <h2 className="mb-3 font-semibold">Předpis plateb</h2>
+            <ul className="divide-y divide-slate-100">
+              {(predpis.data ?? []).map((p) => {
+                const skoncila = p.platnost_do && p.platnost_do < dnes;
+                return (
+                  <li key={p.id} className={`py-2 ${skoncila ? "text-slate-400" : ""}`}>
+                    <div className="flex justify-between gap-2">
+                      <span>{DRUHY_PREDPISU[p.druh] ?? p.druh}{p.popis ? ` – ${p.popis}` : ""}</span>
+                      <span className="whitespace-nowrap">{korun(p.castka)} <span className="text-xs text-slate-500">{PERIODY[p.perioda] ?? ""}</span></span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span>od {datum(p.platnost_od)}{p.platnost_do ? ` do ${datum(p.platnost_do)}` : ""}</span>
+                      {!p.platnost_do && (
+                        <details className="text-right"><summary className="cursor-pointer text-blue-700">ukončit / smazat</summary>
+                          <form action={ukoncitPolozku.bind(null, id, p.id)} className="mt-1 flex items-center justify-end gap-1">
+                            <span>poslední měsíc</span><input type="month" name="do" defaultValue={tento} className="pole w-36 py-1" />
+                            <button className="rounded border border-slate-300 px-2 py-1 hover:bg-slate-50">Ukončit</button>
+                          </form>
+                          <form action={smazatPolozku.bind(null, id, p.id)} className="mt-1"><button className="text-slate-400 hover:text-red-700">smazat úplně (zadaná omylem)</button></form>
+                        </details>)}
+                    </div>
+                  </li>);
+              })}
+            </ul>
+            <details className="mt-3 border-t border-slate-100 pt-3">
+              <summary className="cursor-pointer text-blue-700">+ Přidat položku / změnit nájem</summary>
+              <form action={pridatPolozku.bind(null, id)} className="mt-3 grid gap-2 sm:grid-cols-2">
+                <select name="druh" className="pole">{Object.entries(DRUHY_PREDPISU).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+                <input name="popis" placeholder="upřesnění" className="pole" />
+                <input name="castka" required placeholder="Kč" inputMode="decimal" className="pole" />
+                <select name="perioda" className="pole">{Object.entries(PERIODY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+                <label className="block sm:col-span-2"><span className="stitek">Platí od měsíce</span><input type="date" name="platnost_od" defaultValue={pristiMesic} className="pole" /></label>
+                <p className="text-xs text-slate-500 sm:col-span-2">Při změně nájmu starou položku ukončete a přidejte novou. Už vystavené měsíce se nemění.</p>
+                <div className="sm:col-span-2"><Odeslat>Přidat</Odeslat></div>
+              </form>
+            </details>
           </section>
         </div>
 

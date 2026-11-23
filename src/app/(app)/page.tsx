@@ -14,7 +14,7 @@ export default async function Prehled() {
   const dnes = dnesIso();
   const [dluhy, nemovitosti, smlouvy, terminy, org] = await Promise.all([
     supabase.from("v_dluznici").select("smlouva_id, najemnik, nemovitost, dluh, dni_po_splatnosti"),
-    supabase.from("nemovitost").select("id, nadrazena_id, typ_kod, nazev, stav").is("archivovano_dne", null),
+    supabase.from("nemovitost").select("id, nadrazena_id, typ_kod, nazev, stav, vyuziti").is("archivovano_dne", null),
     supabase.from("najemni_smlouva").select("id, nemovitost_id, datum_od, datum_do, variabilni_symbol, stav").eq("stav", "aktivni"),
     supabase.from("v_terminy").select("*").order("datum").limit(10),
     supabase.from("organizace").select("nazev").limit(1).maybeSingle(),
@@ -34,7 +34,7 @@ export default async function Prehled() {
   // obsazenost: pronajímatelné jsou nemovitosti bez podřízených jednotek (byt, garáž, samostatný dům…)
   const vse = nemovitosti.data ?? [];
   const sPodrizenymi = new Set(vse.map((x) => x.nadrazena_id).filter(Boolean));
-  const pronajimatelne = vse.filter((x) => !sPodrizenymi.has(x.id) && !["P", "D"].includes(x.typ_kod) && !["prodano", "ukonceno", "v_nakupu"].includes(x.stav));
+  const pronajimatelne = vse.filter((x) => !sPodrizenymi.has(x.id) && !["P", "D"].includes(x.typ_kod) && x.stav !== "v_nakupu" && x.vyuziti === "pronajem");
   const obsazene = new Set((smlouvy.data ?? []).filter((s) => s.datum_od <= dnes && (!s.datum_do || s.datum_do >= dnes)).map((s) => s.nemovitost_id));
   const volne = pronajimatelne.filter((x) => !obsazene.has(x.id));
   const pocetObsazenych = pronajimatelne.length - volne.length;

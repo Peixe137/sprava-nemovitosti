@@ -5,10 +5,16 @@ export const datum = (v: string | null | undefined) =>
 export const mesic = (v: string | null | undefined) =>
   v ? new Date(v + "T00:00:00").toLocaleDateString("cs-CZ", { month: "long", year: "numeric" }) : "–";
 
+/** Fáze nemovitosti v portfoliu. Prodej / konec správy = archivace. Vlastní × ve správě plyne z vlastníka. */
 export const STAVY_NEMOVITOSTI: Record<string, string> = {
-  v_nakupu: "V nákupu", drzeni: "Držení", pronajem: "Pronájem", rekonstrukce: "Rekonstrukce",
-  v_prodeji: "V prodeji", pravni_vady: "Řešení právních vad", prodano: "Prodáno",
-  ve_sprave: "Ve správě", ukonceno: "Ukončeno",
+  v_nakupu: "Nákup (v přípravě)", drzeni: "Držení", v_prodeji: "V prodeji",
+};
+/** Jak se nemovitost využívá. Pronajato / volné se počítá ze smluv, nevyplňuje se. */
+export const VYUZITI: Record<string, string> = {
+  pronajem: "K pronájmu", vlastni: "Vlastní užívání", rekonstrukce: "Rekonstrukce", bez_vyuziti: "Bez využití",
+};
+export const PERIODY: Record<string, string> = {
+  mesicne: "měsíčně", ctvrtletne: "čtvrtletně", pololetne: "pololetně", rocne: "ročně",
 };
 export const DRUHY_VLASTNIKA: Record<string, string> = {
   vlastni_firma: "Moje firma", vlastni_osoba: "Já osobně", klient_sprava: "Klient ve správě",

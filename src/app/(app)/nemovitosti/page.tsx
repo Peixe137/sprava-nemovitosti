@@ -1,21 +1,30 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
-import { STAVY_NEMOVITOSTI, DUVODY_ARCHIVACE, korun, datum } from "@/lib/format";
+import { STAVY_NEMOVITOSTI, VYUZITI, DUVODY_ARCHIVACE, korun, datum } from "@/lib/format";
+import { pronajateIds } from "@/lib/obsazenost";
 import { Nadpis } from "@/components/Chyba";
 
-type Nem = { id: string; nadrazena_id: string | null; typ_kod: string; nazev: string; stav: string; obec: string | null; lv: string | null; trzni_hodnota: number | null; drive_folder_url: string | null; archivovano_dne: string | null; duvod_archivace: string | null; vlastnictvi: { vlastnik: { nazev: string; zkratka: string | null } | null }[] };
+type Nem = { id: string; nadrazena_id: string | null; typ_kod: string; nazev: string; stav: string; vyuziti: string; upozorneni: string | null; obec: string | null; lv: string | null; trzni_hodnota: number | null; drive_folder_url: string | null; archivovano_dne: string | null; duvod_archivace: string | null; vlastnictvi: { vlastnik: { nazev: string; zkratka: string | null } | null }[] };
 
 export default async function Nemovitosti({ searchParams }: PageProps<"/nemovitosti">) {
   const archiv = (await searchParams).archiv === "1";
   const supabase = await supabaseServer();
   const { data } = await supabase.from("nemovitost")
-    .select("id, nadrazena_id, typ_kod, nazev, stav, obec, lv, trzni_hodnota, drive_folder_url, archivovano_dne, duvod_archivace, vlastnictvi(vlastnik(nazev, zkratka))")
+    .select("id, nadrazena_id, typ_kod, nazev, stav, vyuziti, upozorneni, obec, lv, trzni_hodnota, drive_folder_url, archivovano_dne, duvod_archivace, vlastnictvi(vlastnik(nazev, zkratka))")
     .order("nazev");
   const vsechny = (data ?? []) as unknown as Nem[];
   const pocetArchiv = vsechny.filter((x) => x.archivovano_dne).length;
   const vse = vsechny.filter((x) => !!x.archivovano_dne === archiv);
   const koreny = vse.filter((x) => !x.nadrazena_id || !vse.some((y) => y.id === x.nadrazena_id));
   const deti = (id: string) => vse.filter((x) => x.nadrazena_id === id);
+  const { data: sml } = await supabase.from("najemni_smlouva").select("nemovitost_id, datum_od, datum_do, stav").eq("stav", "aktivni");
+  const pronajato = pronajateIds(sml ?? []);
+  const stavText = (x: Nem) => {
+    const d = deti(x.id);
+    const obs = d.length ? `${d.filter((j) => pronajato.has(j.id)).length}/${d.length} pronajato`
+      : x.vyuziti === "pronajem" ? (pronajato.has(x.id) ? "Pronajato" : "Volné") : VYUZITI[x.vyuziti];
+    return x.stav === "drzeni" ? obs : `${STAVY_NEMOVITOSTI[x.stav]} · ${obs}`;
+  };
 
   const disk = (x: Nem) => x.drive_folder_url ?? vsechny.find((y) => y.id === x.nadrazena_id)?.drive_folder_url ?? null;
   const Radek = ({ x, odsazeni }: { x: Nem; odsazeni?: boolean }) => (
@@ -27,7 +36,7 @@ export default async function Nemovitosti({ searchParams }: PageProps<"/nemovito
       <td>{x.obec ?? "–"}</td>
       <td>{x.lv ? "LV " + x.lv : "–"}</td>
       <td>{x.vlastnictvi.map((v) => v.vlastnik?.zkratka ? "@" + v.vlastnik.zkratka : v.vlastnik?.nazev).join(", ") || "–"}</td>
-      <td>{x.archivovano_dne ? <span className="text-slate-500">{DUVODY_ARCHIVACE[x.duvod_archivace ?? "jine"]?.split(" (")[0]} {datum(x.archivovano_dne)}</span> : STAVY_NEMOVITOSTI[x.stav]}</td>
+      <td>{x.archivovano_dne ? <span className="text-slate-500">{DUVODY_ARCHIVACE[x.duvod_archivace ?? "jine"]?.split(" (")[0]} {datum(x.archivovano_dne)}</span> : <span className={stavText(x) === "Volné" ? "text-blue-700" : ""}>{stavText(x)}{x.upozorneni && <span title={x.upozorneni} className="ml-1 text-amber-600">⚠</span>}</span>}</td>
       <td className="text-right">{odsazeni ? "" : korun(x.trzni_hodnota)}</td>
       <td className="text-right">{disk(x) && <a href={disk(x)!} target="_blank" rel="noopener" className="tlacitko-svetle px-2 py-1 text-xs">Disk ↗</a>}</td>
     </tr>

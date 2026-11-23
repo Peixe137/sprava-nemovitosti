@@ -40,7 +40,7 @@ export default async function UpravitNemovitost({ params, searchParams }: PagePr
           <p className="mb-3 text-slate-600">Pro prodanou nemovitost nebo ukončenou správu. Záznam i s platbami, náklady a dokumenty zůstane, jen zmizí z běžných přehledů{!x.nadrazena_id ? " – archivují se i jednotky pod ní" : ""}. Nájemní smlouvy musí být nejdřív ukončené.</p>
           <div className="flex flex-wrap items-end gap-3">
             <label className="block"><span className="stitek">Důvod</span>
-              <select name="duvod" className="pole" defaultValue={x.stav === "ve_sprave" ? "konec_spravy" : "prodano"}>
+              <select name="duvod" className="pole" defaultValue="prodano">
                 {Object.entries(DUVODY_ARCHIVACE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select></label>
             <label className="block"><span className="stitek">Ke dni</span><input type="date" name="dne" defaultValue={dnesIso()} className="pole" /></label>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { STAVY_NEMOVITOSTI } from "@/lib/format";
+import { STAVY_NEMOVITOSTI, VYUZITI } from "@/lib/format";
 import { RuianAdresa } from "@/components/RuianAdresa";
 import { Odeslat } from "@/components/Odeslat";
 
@@ -23,12 +23,17 @@ const Pole = ({ name, label, type = "text", v, ...rest }: { name: string; label:
 
 export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rodic, v, vlastnictvi, vice_vlastniku }: Props) {
   const uprava = !!v;
-  const Stav = (
-    <label className="block"><span className="stitek">Stav</span>
-      <select name="stav" defaultValue={String(v?.stav ?? (rodic ? "pronajem" : "drzeni"))} className="pole">
+  const Stav = (<>
+    <label className="block"><span className="stitek">Fáze</span>
+      <select name="stav" defaultValue={String(v?.stav ?? "drzeni")} className="pole">
         {Object.entries(STAVY_NEMOVITOSTI).map(([k, x]) => <option key={k} value={k}>{x}</option>)}
       </select></label>
-  );
+    <label className="block"><span className="stitek">Využití</span>
+      <select name="vyuziti" defaultValue={String(v?.vyuziti ?? "pronajem")} className="pole">
+        {Object.entries(VYUZITI).map(([k, x]) => <option key={k} value={k}>{x}</option>)}
+      </select></label>
+  </>);
+  const Upozorneni = <Pole name="upozorneni" label="Upozornění – co se řeší (právní vady, spor, exekuce…)" v={v} placeholder="nechte prázdné, pokud je vše v pořádku" />;
 
   // ----- jednotka pod budovou / areálem: jen to, co je pro jednotku vlastní -----
   if (rodic) {
@@ -43,11 +48,14 @@ export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rod
             </select></label>
           <div className="sm:col-span-2"><Pole name="nazev" label="Název jednotky (= název podsložky)" required placeholder="NP001 (Pošta)" v={v} /></div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           {Stav}
           <Pole name="plocha_m2" label="Plocha m²" inputMode="decimal" v={v} />
-          {!uprava && <Pole name="cislo_jednotky" label="Č. jednotky v katastru (je-li vymezena)" placeholder="147/1" />}
+          <Pole name="kod_jednotky" label="Číslo pro VS (3 číslice)" inputMode="numeric" maxLength={3} pattern="[0-9]{1,3}"
+            placeholder="201 = 2. patro, j. 01" v={v} />
         </div>
+        {!uprava && <Pole name="cislo_jednotky" label="Č. jednotky v katastru (je-li vymezena)" placeholder="147/1" />}
+        {Upozorneni}
         <Pole name="drive_folder_url" label="Odkaz na podsložku na Disku (nepovinné)" type="url" v={v}
           placeholder={rodic.drive_folder_url ? "jinak se otevře složka budovy" : ""} />
         <label className="block"><span className="stitek">Poznámka</span><textarea name="poznamka" rows={2} defaultValue={String(v?.poznamka ?? "")} className="pole" /></label>
@@ -70,8 +78,11 @@ export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rod
             <option value="">— nepatří pod žádnou budovu ani areál —</option>
             {budovy.filter((b) => b.id !== v?.id).map((x) => <option key={x.id} value={x.id}>{x.nazev}</option>)}
           </select></label>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
         {Stav}
       </div>
+      {Upozorneni}
 
       <fieldset className="grid gap-3 sm:grid-cols-4">
         <legend className="mb-2 text-sm font-semibold">Vlastník</legend>
