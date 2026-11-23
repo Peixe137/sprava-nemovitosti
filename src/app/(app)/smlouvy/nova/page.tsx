@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatSmlouvu } from "../actions";
 import { AresTlacitko } from "@/components/AresTlacitko";
@@ -73,7 +74,7 @@ export default async function NovaSmlouva({ searchParams }: PageProps<"/smlouvy/
         </fieldset>
 
         <label className="block"><span className="stitek">Poznámka</span><textarea name="poznamka" rows={2} className="pole" /></label>
-        <div className="flex gap-3"><button className="tlacitko">Uložit smlouvu</button><Link href="/smlouvy" className="tlacitko-svetle">Zrušit</Link></div>
+        <div className="flex gap-3"><Odeslat>Uložit smlouvu</Odeslat><Link href="/smlouvy" className="tlacitko-svetle">Zrušit</Link></div>
       </form>
     </>
   );

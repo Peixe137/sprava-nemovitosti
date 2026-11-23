@@ -3,14 +3,15 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { STAVY_NEMOVITOSTI, korun, datum } from "@/lib/format";
 import { Chyba, Nadpis } from "@/components/Chyba";
-import { pridatKatastralniPolozku, smazatKatastralniPolozku } from "../actions";
+import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniPolozku } from "../actions";
+import { Odeslat } from "@/components/Odeslat";
 
 export default async function DetailNemovitosti({ params, searchParams }: PageProps<"/nemovitosti/[id]">) {
   const { id } = await params;
-  const { chyba } = await searchParams;
+  const { chyba, uprav } = await searchParams;
   const supabase = await supabaseServer();
   const { data: x } = await supabase.from("nemovitost")
-    .select("*, typ:typ_nemovitosti(nazev), nadrazena:nadrazena_id(id, nazev), vlastnictvi(podil_citatel, podil_jmenovatel, vlastnik(nazev, zkratka))")
+    .select("*, typ:typ_nemovitosti(nazev), nadrazena:nadrazena_id(id, nazev, drive_folder_url), vlastnictvi(podil_citatel, podil_jmenovatel, vlastnik(nazev, zkratka))")
     .eq("id", id).maybeSingle();
   if (!x) notFound();
 
@@ -21,6 +22,8 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
     supabase.from("katastralni_polozka").select("*").eq("nemovitost_id", id).order("druh").order("cislo_parcely"),
   ]);
   const polozky = katastr.data ?? [];
+  // jednotka bez vlastní podsložky otevře složku budovy
+  const disk: string | null = x.drive_folder_url ?? x.nadrazena?.drive_folder_url ?? null;
   const vymeraCelkem = polozky.filter((k) => k.druh === "parcela").reduce((a, k) => a + Number(k.vymera_m2 ?? 0), 0);
   const DRUH: Record<string, string> = { parcela: "Pozemek", stavba: "Stavba", jednotka: "Jednotka" };
 
@@ -40,8 +43,10 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
     <>
       <Nadpis titulek={x.nazev}
         podtitulek={x.nadrazena ? `Součást: ${x.nadrazena.nazev}` : undefined}
-        akce={<div className="flex gap-2">
-          {x.drive_folder_url && <a href={x.drive_folder_url} target="_blank" className="tlacitko-svetle">Složka na Disku ↗</a>}
+        akce={<div className="flex flex-wrap gap-2">
+          {disk ? <a href={disk} target="_blank" rel="noopener" className="tlacitko-svetle">Otevřít složku na Disku ↗</a>
+            : <Link href={`/nemovitosti/${x.id}/upravit`} className="tlacitko-svetle text-slate-500">+ odkaz na složku Disku</Link>}
+          <Link href={`/nemovitosti/${x.id}/upravit`} className="tlacitko-svetle">Upravit</Link>
           <Link href={`/smlouvy/nova?nemovitost=${x.id}`} className="tlacitko">+ Nájemní smlouva</Link>
         </div>} />
       <Chyba text={chyba} />
@@ -64,7 +69,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
             {polozky.length === 0 ? <p className="mb-3 text-sm text-slate-500">Zatím žádné pozemky, stavby ani jednotky.</p> : (
               <table className="tabulka mb-4">
                 <thead><tr><th>Druh</th><th>K.ú.</th><th>Označení</th><th>LV</th><th className="text-right">Výměra</th><th>Podíl</th><th></th></tr></thead>
-                <tbody>{polozky.map((k) => (
+                <tbody>{polozky.map((k) => [
                   <tr key={k.id}>
                     <td>{DRUH[k.druh]}{k.druh_pozemku && <div className="text-xs text-slate-500">{k.druh_pozemku}</div>}</td>
                     <td>{k.katastralni_uzemi ?? "–"}</td>
@@ -73,8 +78,30 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
                     <td>{k.lv ?? "–"}</td>
                     <td className="text-right">{k.vymera_m2 ? `${Number(k.vymera_m2).toLocaleString("cs-CZ")} m²` : "–"}</td>
                     <td>{k.podil_jmenovatel ? `${k.podil_citatel}/${k.podil_jmenovatel}` : "–"}</td>
-                    <td className="text-right"><form action={smazatKatastralniPolozku.bind(null, id, k.id)}><button className="text-xs text-slate-400 hover:text-red-700">odebrat</button></form></td>
-                  </tr>))}
+                    <td className="text-right whitespace-nowrap">
+                      <a href={`?uprav=${k.id}#katastr`} className="text-xs text-blue-700 hover:underline">upravit</a>
+                      <form action={smazatKatastralniPolozku.bind(null, id, k.id)} className="inline"><button className="ml-3 text-xs text-slate-400 hover:text-red-700">odebrat</button></form>
+                    </td>
+                  </tr>,
+                  uprav === k.id && (
+                    <tr key={k.id + "-e"}><td colSpan={7} className="bg-slate-50">
+                      <form action={upravitKatastralniPolozku.bind(null, id, k.id)} className="grid gap-2 py-2 sm:grid-cols-4">
+                        <label className="block"><span className="stitek">Druh</span>
+                          <select name="druh" defaultValue={k.druh} className="pole"><option value="parcela">Pozemek</option><option value="stavba">Stavba</option><option value="jednotka">Jednotka</option></select></label>
+                        <label className="block"><span className="stitek">K.ú.</span><input name="katastralni_uzemi" defaultValue={k.katastralni_uzemi ?? ""} className="pole" /></label>
+                        <label className="block"><span className="stitek">Parcela</span><input name="cislo_parcely" defaultValue={k.cislo_parcely ?? ""} className="pole" /></label>
+                        <label className="block"><span className="stitek">LV</span><input name="lv" defaultValue={k.lv ?? ""} className="pole" /></label>
+                        <label className="block"><span className="stitek">Č.p.</span><input name="cislo_popisne" defaultValue={k.cislo_popisne ?? ""} className="pole" /></label>
+                        <label className="block"><span className="stitek">Č. jednotky</span><input name="cislo_jednotky" defaultValue={k.cislo_jednotky ?? ""} className="pole" /></label>
+                        <label className="block"><span className="stitek">Výměra m²</span><input name="vymera_m2" defaultValue={k.vymera_m2 ?? ""} className="pole" /></label>
+                        <label className="block"><span className="stitek">Druh pozemku</span><input name="druh_pozemku" defaultValue={k.druh_pozemku ?? ""} className="pole" /></label>
+                        <label className="block"><span className="stitek">Podíl</span><div className="flex items-center gap-1"><input name="podil_citatel" defaultValue={k.podil_citatel ?? ""} className="pole" />/<input name="podil_jmenovatel" defaultValue={k.podil_jmenovatel ?? ""} className="pole" /></div></label>
+                        <label className="block sm:col-span-2"><span className="stitek">Poznámka</span><input name="poznamka" defaultValue={k.poznamka ?? ""} className="pole" /></label>
+                        <div className="flex items-end gap-2"><Odeslat>Uložit</Odeslat><a href="?#katastr" className="tlacitko-svetle">Zrušit</a></div>
+                      </form>
+                    </td></tr>
+                  ),
+                ])}
                 </tbody>
               </table>
             )}
@@ -93,7 +120,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
                 <label className="block sm:col-span-3"><span className="stitek">Poznámka</span><input name="poznamka" className="pole" /></label>
                 <div className="flex flex-col justify-end gap-2">
                   <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="z_ruian" defaultChecked /> doplnit výměru a druh z RÚIAN</label>
-                  <button className="tlacitko justify-center">Přidat</button>
+                  <Odeslat className="justify-center">Přidat</Odeslat>
                 </div>
               </form>
             </details>

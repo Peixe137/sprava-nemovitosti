@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { DRUHY_VLASTNIKA } from "@/lib/format";
+import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatVlastnika } from "./actions";
 import { AresTlacitko } from "@/components/AresTlacitko";
@@ -54,7 +55,7 @@ export default async function Vlastnici({ searchParams }: PageProps<"/vlastnici"
           <label className="block"><span className="stitek">Adresa / sídlo</span><input name="adresa" className="pole" /></label>
           <label className="block"><span className="stitek">E-mail</span><input name="email" type="email" className="pole" /></label>
           <label className="block"><span className="stitek">Telefon</span><input name="telefon" className="pole" /></label>
-          <button className="tlacitko">Uložit</button>
+          <Odeslat>Uložit</Odeslat>
         </form>
       </div>
     </>

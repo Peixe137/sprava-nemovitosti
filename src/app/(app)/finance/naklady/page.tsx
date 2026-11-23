@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import { Odeslat } from "@/components/Odeslat";
 import { KATEGORIE_NAKLADU, korun, datum, dnesIso } from "@/lib/format";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatNaklad } from "../actions";
@@ -101,7 +102,7 @@ export default async function Naklady({ searchParams }: PageProps<"/finance/nakl
               <option value="">Ne – nese vlastník</option>
               {Object.entries(SLUZBY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select></label>
-          <button className="tlacitko">Uložit náklad</button>
+          <Odeslat>Uložit náklad</Odeslat>
         </form>
       </div>
     </>

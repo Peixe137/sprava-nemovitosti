@@ -6,42 +6,119 @@ import { supabaseServer } from "@/lib/supabase/server";
 const t = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
 const n = (f: FormData, k: string) => { const v = t(f, k); return v == null ? null : Number(v.replace(/\s/g, "").replace(",", ".")); };
 
-export async function pridatNemovitost(f: FormData) {
-  const supabase = await supabaseServer();
-  const { data, error } = await supabase.from("nemovitost").insert({
+// pole společná pro založení i úpravu
+function udaje(f: FormData) {
+  return {
     typ_kod: t(f, "typ_kod"), nazev: t(f, "nazev"), nadrazena_id: t(f, "nadrazena_id"), stav: t(f, "stav") ?? "drzeni",
     katastralni_uzemi: t(f, "katastralni_uzemi"), lv: t(f, "lv"), parcelni_cislo: t(f, "parcelni_cislo"),
     cislo_popisne: t(f, "cislo_popisne"), ulice: t(f, "ulice"), obec: t(f, "obec"), psc: t(f, "psc"),
     plocha_m2: n(f, "plocha_m2"), porizovaci_cena: n(f, "porizovaci_cena"), datum_porizeni: t(f, "datum_porizeni"),
-    trzni_hodnota: n(f, "trzni_hodnota"),
-    zem_sirka: n(f, "zem_sirka"), zem_delka: n(f, "zem_delka"), ruian_adresni_misto: n(f, "ruian_adresni_misto"), ku_kod: n(f, "ku_kod"),
-    drive_folder_url: t(f, "drive_folder_url"), poznamka: t(f, "poznamka"),
-  }).select("id").single();
-  if (error) redirect(`/nemovitosti/nova?chyba=${encodeURIComponent(error.message)}`);
+    trzni_hodnota: n(f, "trzni_hodnota"), drive_folder_url: t(f, "drive_folder_url"), poznamka: t(f, "poznamka"),
+  };
+}
 
-  // katastrální skladba: parcela (a stavba na ní) z formuláře / RÚIAN
+// jednotka pod budovou přebírá adresu a katastr z budovy
+async function zdedit(supabase: Awaited<ReturnType<typeof supabaseServer>>, nadrazenaId: string | null) {
+  if (!nadrazenaId) return null;
+  const { data } = await supabase.from("nemovitost")
+    .select("katastralni_uzemi, lv, ku_kod, cislo_popisne, ulice, obec, psc, zem_sirka, zem_delka, vlastnictvi(vlastnik_id, podil_citatel, podil_jmenovatel, platnost_od)")
+    .eq("id", nadrazenaId).maybeSingle();
+  return data;
+}
+
+export async function pridatNemovitost(f: FormData) {
+  const supabase = await supabaseServer();
+  const zaklad = udaje(f);
+  const zpet = zaklad.nadrazena_id ? `/nemovitosti/nova?nadrazena=${zaklad.nadrazena_id}&` : "/nemovitosti/nova?";
+
+  // ochrana proti dvojímu uložení: stejný název pod stejnou budovou už existuje
+  let dup = supabase.from("nemovitost").select("id").eq("nazev", zaklad.nazev ?? "");
+  dup = zaklad.nadrazena_id ? dup.eq("nadrazena_id", zaklad.nadrazena_id) : dup.is("nadrazena_id", null);
+  const { data: existujici } = await dup.limit(1).maybeSingle();
+  if (existujici) redirect(`/nemovitosti/${existujici.id}?chyba=${encodeURIComponent("Nemovitost s tímto názvem už existuje – nic dalšího se neuložilo.")}`);
+
+  const rodic = await zdedit(supabase, zaklad.nadrazena_id);
+  const zaznam = rodic ? {
+    ...zaklad,
+    katastralni_uzemi: zaklad.katastralni_uzemi ?? rodic.katastralni_uzemi, lv: zaklad.lv ?? rodic.lv, ku_kod: rodic.ku_kod,
+    cislo_popisne: zaklad.cislo_popisne ?? rodic.cislo_popisne, ulice: zaklad.ulice ?? rodic.ulice, obec: zaklad.obec ?? rodic.obec,
+    psc: zaklad.psc ?? rodic.psc, zem_sirka: rodic.zem_sirka, zem_delka: rodic.zem_delka,
+  } : {
+    ...zaklad,
+    zem_sirka: n(f, "zem_sirka"), zem_delka: n(f, "zem_delka"), ruian_adresni_misto: n(f, "ruian_adresni_misto"), ku_kod: n(f, "ku_kod"),
+  };
+
+  const { data, error } = await supabase.from("nemovitost").insert(zaznam).select("id").single();
+  if (error) redirect(`${zpet}chyba=${encodeURIComponent(error.message)}`);
+
+  // katastrální skladba
   const polozky = [];
-  if (t(f, "parcelni_cislo")) polozky.push({
+  if (!rodic && t(f, "parcelni_cislo")) polozky.push({
     nemovitost_id: data.id, druh: "parcela", katastralni_uzemi: t(f, "katastralni_uzemi"), ku_kod: n(f, "ku_kod"),
     lv: t(f, "lv"), cislo_parcely: t(f, "parcelni_cislo"), vymera_m2: n(f, "parcela_vymera"), druh_pozemku: t(f, "parcela_druh"),
     ruian_kod: n(f, "parcela_ruian"),
   });
-  if (t(f, "cislo_popisne") && ["B", "O"].includes(String(f.get("typ_kod")))) polozky.push({
+  if (!rodic && t(f, "cislo_popisne") && ["B", "O"].includes(String(f.get("typ_kod")))) polozky.push({
     nemovitost_id: data.id, druh: "stavba", katastralni_uzemi: t(f, "katastralni_uzemi"), ku_kod: n(f, "ku_kod"),
     lv: t(f, "lv"), cislo_parcely: t(f, "parcelni_cislo"), cislo_popisne: t(f, "cislo_popisne"),
   });
+  if (rodic && t(f, "cislo_jednotky")) polozky.push({
+    nemovitost_id: data.id, druh: "jednotka", katastralni_uzemi: rodic.katastralni_uzemi, ku_kod: rodic.ku_kod,
+    lv: rodic.lv, cislo_jednotky: t(f, "cislo_jednotky"),
+  });
   if (polozky.length) await supabase.from("katastralni_polozka").insert(polozky);
 
+  // vlastnictví: zvolený vlastník, u jednotky stejný jako u budovy
   const vlastnik = t(f, "vlastnik_id");
-  if (vlastnik) {
-    const { error: e2 } = await supabase.from("vlastnictvi").insert({
-      nemovitost_id: data.id, vlastnik_id: vlastnik,
-      podil_citatel: n(f, "podil_citatel") ?? 1, podil_jmenovatel: n(f, "podil_jmenovatel") ?? 1,
-    });
+  const vlastnictvi = vlastnik
+    ? [{ nemovitost_id: data.id, vlastnik_id: vlastnik, podil_citatel: n(f, "podil_citatel") ?? 1, podil_jmenovatel: n(f, "podil_jmenovatel") ?? 1 }]
+    : (rodic?.vlastnictvi ?? []).map((v: { vlastnik_id: string; podil_citatel: number; podil_jmenovatel: number; platnost_od: string | null }) => ({ ...v, nemovitost_id: data.id }));
+  if (vlastnictvi.length) {
+    const { error: e2 } = await supabase.from("vlastnictvi").insert(vlastnictvi);
     if (e2) redirect(`/nemovitosti/${data.id}?chyba=${encodeURIComponent("Nemovitost uložena, ale vlastnictví ne: " + e2.message)}`);
   }
   revalidatePath("/nemovitosti");
-  redirect(`/nemovitosti/${data.id}`);
+  redirect(rodic ? `/nemovitosti/${zaklad.nadrazena_id}` : `/nemovitosti/${data.id}`);
+}
+
+export async function upravitNemovitost(id: string, f: FormData) {
+  const supabase = await supabaseServer();
+  const z = udaje(f);
+  // formulář jednotky neposílá adresu, katastr ani ceny – ty se nemění
+  const jednotka = !f.has("katastralni_uzemi");
+  const zmeny = jednotka
+    ? { typ_kod: z.typ_kod, nazev: z.nazev, stav: z.stav, plocha_m2: z.plocha_m2, drive_folder_url: z.drive_folder_url, poznamka: z.poznamka }
+    : z;
+  if (z.nadrazena_id === id && !jednotka) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent("Nemovitost nemůže patřit sama pod sebe.")}`);
+  const { error } = await supabase.from("nemovitost").update(zmeny).eq("id", id);
+  if (error) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent(error.message)}`);
+
+  const vlastnik = t(f, "vlastnik_id");
+  if (!jednotka && f.has("vlastnik_id")) {
+    const { data: stavajici } = await supabase.from("vlastnictvi").select("id").eq("nemovitost_id", id);
+    if ((stavajici ?? []).length <= 1) {
+      await supabase.from("vlastnictvi").delete().eq("nemovitost_id", id);
+      if (vlastnik) await supabase.from("vlastnictvi").insert({
+        nemovitost_id: id, vlastnik_id: vlastnik, podil_citatel: n(f, "podil_citatel") ?? 1, podil_jmenovatel: n(f, "podil_jmenovatel") ?? 1,
+      });
+    }
+  }
+  revalidatePath("/nemovitosti");
+  redirect(`/nemovitosti/${id}`);
+}
+
+export async function smazatNemovitost(id: string, f: FormData) {
+  if (f.get("potvrzeni") !== "on") redirect(`/nemovitosti/${id}/upravit`);
+  const supabase = await supabaseServer();
+  const [{ count: jednotek }, { count: smluv }] = await Promise.all([
+    supabase.from("nemovitost").select("id", { count: "exact", head: true }).eq("nadrazena_id", id),
+    supabase.from("najemni_smlouva").select("id", { count: "exact", head: true }).eq("nemovitost_id", id),
+  ]);
+  if (jednotek || smluv) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent(`Nelze smazat: nemovitost má ${jednotek ?? 0} jednotek a ${smluv ?? 0} nájemních smluv.`)}`);
+  const { error } = await supabase.from("nemovitost").delete().eq("id", id);
+  if (error) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent(error.message)}`);
+  revalidatePath("/nemovitosti");
+  redirect("/nemovitosti");
 }
 
 export async function pridatKatastralniPolozku(nemovitostId: string, f: FormData) {
@@ -72,4 +149,17 @@ export async function smazatKatastralniPolozku(nemovitostId: string, id: string)
   const supabase = await supabaseServer();
   await supabase.from("katastralni_polozka").delete().eq("id", id);
   revalidatePath(`/nemovitosti/${nemovitostId}`);
+}
+
+export async function upravitKatastralniPolozku(nemovitostId: string, id: string, f: FormData) {
+  const supabase = await supabaseServer();
+  const { error } = await supabase.from("katastralni_polozka").update({
+    druh: t(f, "druh") ?? "parcela", katastralni_uzemi: t(f, "katastralni_uzemi"), lv: t(f, "lv"),
+    cislo_parcely: t(f, "cislo_parcely"), vymera_m2: n(f, "vymera_m2"), druh_pozemku: t(f, "druh_pozemku"),
+    cislo_popisne: t(f, "cislo_popisne"), cislo_jednotky: t(f, "cislo_jednotky"),
+    podil_citatel: n(f, "podil_citatel"), podil_jmenovatel: n(f, "podil_jmenovatel"), poznamka: t(f, "poznamka"),
+  }).eq("id", id);
+  if (error) redirect(`/nemovitosti/${nemovitostId}?chyba=${encodeURIComponent(error.message)}#katastr`);
+  revalidatePath(`/nemovitosti/${nemovitostId}`);
+  redirect(`/nemovitosti/${nemovitostId}#katastr`);
 }

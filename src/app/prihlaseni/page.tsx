@@ -1,3 +1,4 @@
+import { Odeslat } from "@/components/Odeslat";
 import { prihlasit } from "./actions";
 
 export default async function Prihlaseni({ searchParams }: PageProps<"/prihlaseni">) {
@@ -20,7 +21,7 @@ export default async function Prihlaseni({ searchParams }: PageProps<"/prihlasen
           <span className="stitek">Heslo</span>
           <input name="heslo" type="password" required autoComplete="current-password" className="pole" />
         </label>
-        <button className="tlacitko w-full justify-center">Přihlásit se</button>
+        <Odeslat className="w-full justify-center">Přihlásit se</Odeslat>
       </form>
     </main>
   );
