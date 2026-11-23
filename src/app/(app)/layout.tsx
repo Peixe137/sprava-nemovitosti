@@ -1,14 +1,6 @@
-import Link from "next/link";
+import { Menu } from "@/components/Menu";
 import { supabaseServer } from "@/lib/supabase/server";
 import { odhlasit } from "../prihlaseni/actions";
-
-const MENU = [
-  { href: "/", text: "Přehled" },
-  { href: "/nemovitosti", text: "Nemovitosti" },
-  { href: "/smlouvy", text: "Nájemní smlouvy" },
-  { href: "/dluznici", text: "Dlužníci" },
-  { href: "/vlastnici", text: "Vlastníci" },
-];
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const supabase = await supabaseServer();
@@ -22,14 +14,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <div className="text-lg font-semibold">Správa nemovitostí</div>
           <div className="truncate text-xs text-slate-500">{org?.nazev}</div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col">
-          {MENU.map((m) => (
-            <Link key={m.href} href={m.href}
-              className="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-slate-700 hover:bg-slate-100">
-              {m.text}
-            </Link>
-          ))}
-        </nav>
+        <Menu />
         <form action={odhlasit} className="hidden px-5 pb-5 md:block">
           <div className="mb-2 truncate text-xs text-slate-500">{String(data?.claims?.email ?? "")}</div>
           <button className="text-sm text-slate-600 hover:underline">Odhlásit se</button>

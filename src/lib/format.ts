@@ -21,3 +21,13 @@ export const DRUHY_PREDPISU: Record<string, string> = {
 export const STAVY_POHLEDAVKY: Record<string, string> = {
   otevrena: "Nezaplaceno", castecne: "Částečně", uhrazena: "Zaplaceno", prominuta: "Prominuto", preplatek: "Přeplatek",
 };
+
+export const KATEGORIE_NAKLADU: Record<string, string> = {
+  oprava: "Opravy", udrzba: "Údržba", pojisteni: "Pojištění", dan_z_nemovitosti: "Daň z nemovitosti",
+  fond_oprav: "Fond oprav", sprava_svj: "Správa SVJ", energie: "Energie", voda: "Voda", odpad: "Odpad",
+  uver_uroky: "Úroky z úvěru", odmena_sprava: "Odměna za správu", pravni_ucetni: "Právní a účetní služby",
+  revize: "Revize", technicke_zhodnoceni: "Technické zhodnocení (investice)", porizeni: "Pořízení", ostatni: "Ostatní",
+};
+export const MESICE = ["Led", "Úno", "Bře", "Dub", "Kvě", "Čvn", "Čvc", "Srp", "Zář", "Říj", "Lis", "Pro"];
+export const dnesIso = () => new Date().toISOString().slice(0, 10);
+export const zaDni = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);

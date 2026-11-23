@@ -1,70 +1,137 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
-import { korun, datum, mesic } from "@/lib/format";
-import { Nadpis } from "@/components/Chyba";
+import { korun, datum, dnesIso, zaDni } from "@/lib/format";
+
+type Upozorneni = { text: string; href: string; ton: "cervena" | "oranzova" | "modra" };
+const TON = {
+  cervena: "border-red-200 bg-red-50 text-red-800",
+  oranzova: "border-amber-200 bg-amber-50 text-amber-900",
+  modra: "border-blue-200 bg-blue-50 text-blue-900",
+};
 
 export default async function Prehled() {
   const supabase = await supabaseServer();
-  const [nem, sml, dluh, terminy] = await Promise.all([
-    supabase.from("nemovitost").select("id", { count: "exact", head: true }),
-    supabase.from("najemni_smlouva").select("id", { count: "exact", head: true }).eq("stav", "aktivni"),
-    supabase.from("v_dluznici").select("*").order("dni_po_splatnosti", { ascending: false }),
-    supabase.from("v_terminy").select("*").order("datum").limit(8),
+  const dnes = dnesIso();
+  const [dluhy, nemovitosti, smlouvy, terminy, org] = await Promise.all([
+    supabase.from("v_dluznici").select("smlouva_id, najemnik, nemovitost, dluh, dni_po_splatnosti"),
+    supabase.from("nemovitost").select("id, nadrazena_id, typ_kod, nazev, stav"),
+    supabase.from("najemni_smlouva").select("id, nemovitost_id, datum_od, datum_do, variabilni_symbol, stav").eq("stav", "aktivni"),
+    supabase.from("v_terminy").select("*").order("datum").limit(10),
+    supabase.from("organizace").select("nazev").limit(1).maybeSingle(),
   ]);
-  const dluznici = dluh.data ?? [];
-  const dluhCelkem = dluznici.reduce((s, d) => s + Number(d.dluh), 0);
 
-  const dlazdice = [
-    { text: "Nemovitostí", hodnota: String(nem.count ?? 0), href: "/nemovitosti" },
-    { text: "Aktivních smluv", hodnota: String(sml.count ?? 0), href: "/smlouvy" },
-    { text: "Dluží celkem", hodnota: korun(dluhCelkem), href: "/dluznici", varovani: dluhCelkem > 0 },
-  ];
+  // dlužníci po smlouvách
+  const poSmlouve = new Map<string, { smlouva_id: string; najemnik: string | null; nemovitost: string; dluh: number; dni: number }>();
+  for (const d of dluhy.data ?? []) {
+    const x = poSmlouve.get(d.smlouva_id) ?? { smlouva_id: d.smlouva_id, najemnik: d.najemnik, nemovitost: d.nemovitost, dluh: 0, dni: 0 };
+    x.dluh += Number(d.dluh); x.dni = Math.max(x.dni, d.dni_po_splatnosti);
+    poSmlouve.set(d.smlouva_id, x);
+  }
+  const dluznici = [...poSmlouve.values()].sort((a, b) => b.dluh - a.dluh);
+  const dluhCelkem = dluznici.reduce((s, d) => s + d.dluh, 0);
+  const kriticti = dluznici.filter((d) => d.dni > 90).length;
+
+  // obsazenost: pronajímatelné jsou nemovitosti bez podřízených jednotek (byt, garáž, samostatný dům…)
+  const vse = nemovitosti.data ?? [];
+  const sPodrizenymi = new Set(vse.map((x) => x.nadrazena_id).filter(Boolean));
+  const pronajimatelne = vse.filter((x) => !sPodrizenymi.has(x.id) && !["P", "D"].includes(x.typ_kod) && !["prodano", "ukonceno", "v_nakupu"].includes(x.stav));
+  const obsazene = new Set((smlouvy.data ?? []).filter((s) => s.datum_od <= dnes && (!s.datum_do || s.datum_do >= dnes)).map((s) => s.nemovitost_id));
+  const volne = pronajimatelne.filter((x) => !obsazene.has(x.id));
+  const pocetObsazenych = pronajimatelne.length - volne.length;
+  const procento = pronajimatelne.length ? Math.round((pocetObsazenych / pronajimatelne.length) * 100) : 0;
+
+  const koncici = (smlouvy.data ?? []).filter((s) => s.datum_do && s.datum_do >= dnes && s.datum_do <= zaDni(90));
+  const prosle = (terminy.data ?? []).filter((t) => t.datum < dnes);
+
+  const upozorneni: Upozorneni[] = [];
+  if (dluznici.length) upozorneni.push({ text: `${dluznici.length}× nezaplacené nájemné (${korun(dluhCelkem)})`, href: "/finance/dluznici", ton: "cervena" });
+  if (prosle.length) upozorneni.push({ text: `${prosle.length}× prošlý termín nebo revize`, href: "#terminy", ton: "oranzova" });
+  if (koncici.length) upozorneni.push({ text: `${koncici.length}× smlouva končí do 90 dní`, href: "/smlouvy", ton: "oranzova" });
+  if (volne.length) upozorneni.push({ text: `${volne.length}× volná jednotka k pronájmu`, href: "#volne", ton: "modra" });
+
+  const hodina = new Date().toLocaleString("cs-CZ", { hour: "numeric", timeZone: "Europe/Prague" });
+  const pozdrav = Number(hodina) < 10 ? "Dobré ráno" : Number(hodina) < 18 ? "Dobrý den" : "Dobrý večer";
 
   return (
     <>
-      <Nadpis titulek="Přehled" />
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        {dlazdice.map((d) => (
-          <Link key={d.text} href={d.href} className="karta hover:border-slate-300">
-            <div className="stitek">{d.text}</div>
-            <div className={`text-2xl font-semibold ${d.varovani ? "text-red-700" : ""}`}>{d.hodnota}</div>
-          </Link>
-        ))}
+      <section className="karta mb-6">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h1 className="text-2xl font-semibold">{pozdrav}</h1>
+          <span className="text-sm text-slate-500">{new Date().toLocaleDateString("cs-CZ", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Prague" })} · {org.data?.nazev}</span>
+        </div>
+        {upozorneni.length === 0 ? (
+          <p className="text-sm text-green-700">Dnes nic nevyžaduje vaši pozornost.</p>
+        ) : (
+          <>
+            <p className="mb-3 text-sm text-slate-600">Dnes vyžaduje pozornost:</p>
+            <div className="flex flex-wrap gap-2">
+              {upozorneni.map((u) => (
+                <Link key={u.text} href={u.href} className={`rounded-lg border px-3 py-2 text-sm font-medium hover:opacity-80 ${TON[u.ton]}`}>{u.text} →</Link>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="karta">
+          <div className="stitek">Obsazenost</div>
+          <div className="text-2xl font-semibold">{procento} %</div>
+          <div className="mt-2 h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-slate-900" style={{ width: `${procento}%` }} /></div>
+          <div className="mt-1 text-xs text-slate-500">{pocetObsazenych} pronajato · {volne.length} volných</div>
+        </div>
+        <Link href="/smlouvy" className="karta hover:border-slate-300">
+          <div className="stitek">Aktivní smlouvy</div>
+          <div className="text-2xl font-semibold">{(smlouvy.data ?? []).length}</div>
+          <div className="text-xs text-slate-500">{koncici.length} končí do 90 dní</div>
+        </Link>
+        <Link href="/finance/dluznici" className="karta hover:border-slate-300">
+          <div className="stitek">Dluží celkem</div>
+          <div className={`text-2xl font-semibold ${dluhCelkem ? "text-red-700" : ""}`}>{korun(dluhCelkem)}</div>
+          <div className="text-xs text-slate-500">{kriticti} déle než 90 dní</div>
+        </Link>
+        <div className="karta">
+          <div className="stitek mb-2">Rychlé akce</div>
+          <div className="flex flex-col gap-1 text-sm">
+            <Link href="/smlouvy/nova" className="odkaz">+ Nová nájemní smlouva</Link>
+            <Link href="/finance/naklady" className="odkaz">+ Zadat náklad</Link>
+            <Link href="/nemovitosti/nova" className="odkaz">+ Nová nemovitost</Link>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         <section className="karta">
-          <h2 className="mb-3 font-semibold">Po splatnosti</h2>
-          {dluznici.length === 0 ? (
-            <p className="text-sm text-slate-500">Nikdo nic nedluží.</p>
-          ) : (
-            <table className="tabulka">
-              <tbody>
-                {dluznici.slice(0, 8).map((d) => (
-                  <tr key={d.pohledavka_id}>
-                    <td><Link href={`/smlouvy/${d.smlouva_id}`} className="odkaz">{d.najemnik ?? d.nemovitost}</Link>
-                      <div className="text-xs text-slate-500">{d.nemovitost} · {mesic(d.obdobi)}</div></td>
-                    <td className="text-right font-medium text-red-700">{korun(d.dluh)}</td>
-                    <td className="text-right text-xs text-slate-500">{d.dni_po_splatnosti} dní</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">Největší dlužníci</h2><Link href="/finance/dluznici" className="text-sm odkaz">Vše</Link></div>
+          {dluznici.length === 0 ? <p className="text-sm text-slate-500">Nikdo nic nedluží.</p> : (
+            <ul className="space-y-3 text-sm">{dluznici.slice(0, 6).map((d) => (
+              <li key={d.smlouva_id} className="flex items-start justify-between gap-2">
+                <div><Link href={`/smlouvy/${d.smlouva_id}`} className="odkaz">{d.najemnik ?? "–"}</Link>
+                  <div className="text-xs text-slate-500">{d.nemovitost} · {d.dni} dní po splatnosti</div></div>
+                <span className="font-semibold whitespace-nowrap text-red-700">{korun(d.dluh)}</span>
+              </li>))}</ul>
           )}
         </section>
 
-        <section className="karta">
-          <h2 className="mb-3 font-semibold">Blížící se termíny</h2>
-          {(terminy.data ?? []).length === 0 ? (
-            <p className="text-sm text-slate-500">Žádné termíny v nejbližší době.</p>
-          ) : (
-            <table className="tabulka">
-              <tbody>
-                {(terminy.data ?? []).map((t) => (
-                  <tr key={t.zdroj + t.id}><td>{t.nazev}</td><td className="text-right">{datum(t.datum)}</td></tr>
-                ))}
-              </tbody>
-            </table>
+        <section id="terminy" className="karta">
+          <h2 className="mb-3 font-semibold">Termíny a revize</h2>
+          {(terminy.data ?? []).length === 0 ? <p className="text-sm text-slate-500">Žádné blížící se termíny.</p> : (
+            <ul className="space-y-2 text-sm">{(terminy.data ?? []).map((t) => (
+              <li key={t.zdroj + t.id} className="flex justify-between gap-2">
+                <span>{t.nazev}</span>
+                <span className={`whitespace-nowrap ${t.datum < dnes ? "font-semibold text-red-700" : "text-slate-600"}`}>{datum(t.datum)}</span>
+              </li>))}</ul>
+          )}
+        </section>
+
+        <section id="volne" className="karta">
+          <h2 className="mb-3 font-semibold">Volné jednotky</h2>
+          {volne.length === 0 ? <p className="text-sm text-slate-500">Vše je pronajato.</p> : (
+            <ul className="space-y-2 text-sm">{volne.slice(0, 8).map((v) => (
+              <li key={v.id} className="flex justify-between gap-2">
+                <Link href={`/nemovitosti/${v.id}`} className="odkaz">{v.nazev}</Link>
+                <Link href={`/smlouvy/nova?nemovitost=${v.id}`} className="text-xs whitespace-nowrap text-slate-500 hover:underline">pronajmout</Link>
+              </li>))}</ul>
           )}
         </section>
       </div>
