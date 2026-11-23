@@ -9,7 +9,7 @@ export default async function NovaSmlouva({ searchParams }: PageProps<"/smlouvy/
   const { chyba, nemovitost } = await searchParams;
   const supabase = await supabaseServer();
   const [nem, vl] = await Promise.all([
-    supabase.from("nemovitost").select("id, nazev").order("nazev"),
+    supabase.from("nemovitost").select("id, nazev").is("archivovano_dne", null).order("nazev"),
     supabase.from("vlastnik").select("id, nazev, zkratka").order("nazev"),
   ]);
 

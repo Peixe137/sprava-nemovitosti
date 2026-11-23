@@ -3,7 +3,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { FormularNemovitosti } from "@/components/FormularNemovitosti";
 import { Odeslat } from "@/components/Odeslat";
-import { upravitNemovitost, smazatNemovitost } from "../../actions";
+import { upravitNemovitost, smazatNemovitost, archivovatNemovitost, obnovitNemovitost } from "../../actions";
+import { DUVODY_ARCHIVACE, dnesIso } from "@/lib/format";
 
 export default async function UpravitNemovitost({ params, searchParams }: PageProps<"/nemovitosti/[id]/upravit">) {
   const { id } = await params;
@@ -13,7 +14,7 @@ export default async function UpravitNemovitost({ params, searchParams }: PagePr
   if (!x) notFound();
   const [typy, budovy, vlastnici, rodic] = await Promise.all([
     supabase.from("typ_nemovitosti").select("kod, nazev").order("kod"),
-    supabase.from("nemovitost").select("id, nazev").is("nadrazena_id", null).order("nazev"),
+    supabase.from("nemovitost").select("id, nazev").is("nadrazena_id", null).is("archivovano_dne", null).order("nazev"),
     supabase.from("vlastnik").select("id, nazev, zkratka").order("nazev"),
     x.nadrazena_id ? supabase.from("nemovitost").select("id, nazev, drive_folder_url").eq("id", x.nadrazena_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
@@ -28,8 +29,27 @@ export default async function UpravitNemovitost({ params, searchParams }: PagePr
       <FormularNemovitosti akce={upravitNemovitost.bind(null, id)} zrusit={`/nemovitosti/${id}`} v={x}
         typy={typy.data ?? []} budovy={budovy.data ?? []} vlastnici={vlastnici.data ?? []} rodic={jednotka}
         vlastnictvi={vl[0] ?? null} vice_vlastniku={vl.length > 1} />
+      {x.archivovano_dne ? (
+        <form action={obnovitNemovitost.bind(null, id)} className="mt-6 max-w-3xl rounded-xl border border-slate-200 bg-white p-5 text-sm">
+          <p className="mb-3 text-slate-700">Nemovitost je v archivu ({DUVODY_ARCHIVACE[x.duvod_archivace ?? "jine"]}). Obnovením se vrátí mezi aktivní, i s jednotkami.</p>
+          <Odeslat svetle>Obnovit z archivu</Odeslat>
+        </form>
+      ) : (
+        <form action={archivovatNemovitost.bind(null, id)} className="mt-6 max-w-3xl rounded-xl border border-slate-200 bg-white p-5 text-sm">
+          <h2 className="mb-1 font-semibold">Archivovat</h2>
+          <p className="mb-3 text-slate-600">Pro prodanou nemovitost nebo ukončenou správu. Záznam i s platbami, náklady a dokumenty zůstane, jen zmizí z běžných přehledů{!x.nadrazena_id ? " – archivují se i jednotky pod ní" : ""}. Nájemní smlouvy musí být nejdřív ukončené.</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="block"><span className="stitek">Důvod</span>
+              <select name="duvod" className="pole" defaultValue={x.stav === "ve_sprave" ? "konec_spravy" : "prodano"}>
+                {Object.entries(DUVODY_ARCHIVACE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select></label>
+            <label className="block"><span className="stitek">Ke dni</span><input type="date" name="dne" defaultValue={dnesIso()} className="pole" /></label>
+            <Odeslat svetle>Archivovat</Odeslat>
+          </div>
+        </form>
+      )}
       <form action={smazatNemovitost.bind(null, id)} className="mt-6 max-w-3xl rounded-xl border border-red-200 bg-red-50 p-5 text-sm">
-        <p className="mb-3 text-red-800">Smazat nemovitost včetně katastrální skladby a vlastnictví. Nejde smazat, pokud má jednotky nebo nájemní smlouvy.</p>
+        <p className="mb-3 text-red-800">Smazat nemovitost natrvalo – jen pro omyly a duplicity (prodej nebo konec správy řešte archivací). Maže se i katastrální skladba a vlastnictví. Nejde smazat, pokud má jednotky nebo nájemní smlouvy.</p>
         <div className="flex items-center gap-4"><label className="flex items-center gap-2"><input type="checkbox" name="potvrzeni" required /> Ano, opravdu smazat</label><Odeslat svetle>Smazat nemovitost</Odeslat></div>
       </form>
     </>

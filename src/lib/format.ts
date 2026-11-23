@@ -31,3 +31,7 @@ export const KATEGORIE_NAKLADU: Record<string, string> = {
 export const MESICE = ["Led", "Úno", "Bře", "Dub", "Kvě", "Čvn", "Čvc", "Srp", "Zář", "Říj", "Lis", "Pro"];
 export const dnesIso = () => new Date().toISOString().slice(0, 10);
 export const zaDni = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+
+export const DUVODY_ARCHIVACE: Record<string, string> = {
+  prodano: "Prodáno", konec_spravy: "Ukončena správa (odešel klient)", zbourano: "Zbouráno / zaniklo", jine: "Jiný důvod",
+};

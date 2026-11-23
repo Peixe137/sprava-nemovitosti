@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { STAVY_NEMOVITOSTI, korun, datum } from "@/lib/format";
+import { STAVY_NEMOVITOSTI, korun, datum, DUVODY_ARCHIVACE } from "@/lib/format";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniPolozku } from "../actions";
 import { Odeslat } from "@/components/Odeslat";
@@ -16,7 +16,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
   if (!x) notFound();
 
   const [jednotky, smlouvy, vynosnost, katastr] = await Promise.all([
-    supabase.from("nemovitost").select("id, typ_kod, nazev, stav").eq("nadrazena_id", id).order("nazev"),
+    supabase.from("nemovitost").select("id, typ_kod, nazev, stav, archivovano_dne").eq("nadrazena_id", id).order("nazev"),
     supabase.from("najemni_smlouva").select("id, variabilni_symbol, datum_od, datum_do, stav, najemni_smlouva_osoba(osoba(jmeno, prijmeni, nazev_firmy))").eq("nemovitost_id", id).order("datum_od", { ascending: false }),
     supabase.from("v_vynosnost").select("*").eq("nemovitost_id", id).order("rok", { ascending: false }),
     supabase.from("katastralni_polozka").select("*").eq("nemovitost_id", id).order("druh").order("cislo_parcely"),
@@ -41,6 +41,8 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
 
   return (
     <>
+      {x.archivovano_dne && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        V archivu od {datum(x.archivovano_dne)} – {DUVODY_ARCHIVACE[x.duvod_archivace ?? "jine"]}. Obnovit jde přes Upravit.</div>}
       <Nadpis titulek={x.nazev}
         podtitulek={x.nadrazena ? `Součást: ${x.nadrazena.nazev}` : undefined}
         akce={<div className="flex flex-wrap gap-2">
@@ -134,7 +136,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
             {(jednotky.data ?? []).length === 0 ? <p className="text-sm text-slate-500">Bez jednotek.</p> : (
               <ul className="space-y-1 text-sm">{(jednotky.data ?? []).map((j) =>
                 <li key={j.id}><span className="mr-2 text-xs font-semibold text-slate-500">{j.typ_kod}</span>
-                  <Link href={`/nemovitosti/${j.id}`} className="odkaz">{j.nazev}</Link> · {STAVY_NEMOVITOSTI[j.stav]}</li>)}</ul>
+                  <Link href={`/nemovitosti/${j.id}`} className="odkaz">{j.nazev}</Link> · {j.archivovano_dne ? <span className="text-slate-400">archiv</span> : STAVY_NEMOVITOSTI[j.stav]}</li>)}</ul>
             )}
           </section>
 

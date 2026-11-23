@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { Menu } from "@/components/Menu";
+import { Hledani } from "@/components/Hledani";
 import { supabaseServer } from "@/lib/supabase/server";
 import { odhlasit } from "../prihlaseni/actions";
 
@@ -14,6 +16,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <div className="text-lg font-semibold">Správa nemovitostí</div>
           <div className="truncate text-xs text-slate-500">{org?.nazev}</div>
         </div>
+        <Suspense><Hledani /></Suspense>
         <Menu />
         <form action={odhlasit} className="hidden px-5 pb-5 md:block">
           <div className="mb-2 truncate text-xs text-slate-500">{String(data?.claims?.email ?? "")}</div>

@@ -8,7 +8,7 @@ export default async function NovaNemovitost({ searchParams }: PageProps<"/nemov
   const supabase = await supabaseServer();
   const [typy, budovy, vlastnici, rodic] = await Promise.all([
     supabase.from("typ_nemovitosti").select("kod, nazev").order("kod"),
-    supabase.from("nemovitost").select("id, nazev").is("nadrazena_id", null).order("nazev"),
+    supabase.from("nemovitost").select("id, nazev").is("nadrazena_id", null).is("archivovano_dne", null).order("nazev"),
     supabase.from("vlastnik").select("id, nazev, zkratka").order("nazev"),
     nadrazena ? supabase.from("nemovitost").select("id, nazev, drive_folder_url").eq("id", String(nadrazena)).maybeSingle() : Promise.resolve({ data: null }),
   ]);

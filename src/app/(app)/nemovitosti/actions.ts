@@ -163,3 +163,31 @@ export async function upravitKatastralniPolozku(nemovitostId: string, id: string
   revalidatePath(`/nemovitosti/${nemovitostId}`);
   redirect(`/nemovitosti/${nemovitostId}#katastr`);
 }
+
+
+/** Archivace: záznam zůstane (platby, náklady, výnosnost), jen zmizí z běžných seznamů. Archivuje i podřízené jednotky. */
+export async function archivovatNemovitost(id: string, f: FormData) {
+  const supabase = await supabaseServer();
+  const duvod = String(f.get("duvod") ?? "jine");
+  const dne = String(f.get("dne") || new Date().toISOString().slice(0, 10));
+  const { data: deti } = await supabase.from("nemovitost").select("id").eq("nadrazena_id", id);
+  const ids = [id, ...(deti ?? []).map((d) => d.id)];
+  const { count } = await supabase.from("najemni_smlouva").select("id", { count: "exact", head: true })
+    .in("nemovitost_id", ids).in("stav", ["aktivni", "navrh"]);
+  if (count) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent(`Na nemovitosti běží ${count} nájemní smlouv${count === 1 ? "a" : "y"}. Nejdřív ji ukončete (jinak by se dál generovaly platby).`)}`);
+  const zmeny: Record<string, unknown> = { archivovano_dne: dne, duvod_archivace: duvod };
+  if (duvod === "prodano") zmeny.stav = "prodano";
+  if (duvod === "konec_spravy") zmeny.stav = "ukonceno";
+  const { error } = await supabase.from("nemovitost").update(zmeny).in("id", ids);
+  if (error) redirect(`/nemovitosti/${id}/upravit?chyba=${encodeURIComponent(error.message)}`);
+  revalidatePath("/", "layout");
+  redirect(`/nemovitosti/${id}`);
+}
+
+export async function obnovitNemovitost(id: string) {
+  const supabase = await supabaseServer();
+  const { data: deti } = await supabase.from("nemovitost").select("id").eq("nadrazena_id", id);
+  await supabase.from("nemovitost").update({ archivovano_dne: null, duvod_archivace: null }).in("id", [id, ...(deti ?? []).map((d) => d.id)]);
+  revalidatePath("/", "layout");
+  redirect(`/nemovitosti/${id}`);
+}

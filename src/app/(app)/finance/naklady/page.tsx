@@ -23,7 +23,7 @@ export default async function Naklady({ searchParams }: PageProps<"/finance/nakl
 
   const [naklady, nem, dodavatele] = await Promise.all([
     dotaz,
-    supabase.from("nemovitost").select("id, nazev").order("nazev"),
+    supabase.from("nemovitost").select("id, nazev").is("archivovano_dne", null).order("nazev"),
     supabase.from("osoba").select("id, nazev_firmy, prijmeni, jmeno").eq("je_dodavatel", true).order("nazev_firmy"),
   ]);
   const radky = (naklady.data ?? []) as unknown as {

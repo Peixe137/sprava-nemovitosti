@@ -14,7 +14,7 @@ export default async function Prehled() {
   const dnes = dnesIso();
   const [dluhy, nemovitosti, smlouvy, terminy, org] = await Promise.all([
     supabase.from("v_dluznici").select("smlouva_id, najemnik, nemovitost, dluh, dni_po_splatnosti"),
-    supabase.from("nemovitost").select("id, nadrazena_id, typ_kod, nazev, stav"),
+    supabase.from("nemovitost").select("id, nadrazena_id, typ_kod, nazev, stav").is("archivovano_dne", null),
     supabase.from("najemni_smlouva").select("id, nemovitost_id, datum_od, datum_do, variabilni_symbol, stav").eq("stav", "aktivni"),
     supabase.from("v_terminy").select("*").order("datum").limit(10),
     supabase.from("organizace").select("nazev").limit(1).maybeSingle(),
