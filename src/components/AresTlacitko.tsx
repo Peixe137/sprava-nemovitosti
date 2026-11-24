@@ -23,6 +23,7 @@ export function AresTlacitko({ icoPole = "ico", mapovani }: { icoPole?: string; 
         if (!el || hodnota == null) continue;
         if (el instanceof HTMLInputElement && el.type === "checkbox") el.checked = Boolean(hodnota);
         else el.value = String(hodnota);
+        el.dispatchEvent(new Event("input", { bubbles: true })); // ať navázaná pole (např. návrh zkratky) zareagují
       }
       setZprava(r.data.zanikl
         ? { text: `Pozor: ${r.data.nazev} je v ARES vedený jako zaniklý.`, chyba: true }
