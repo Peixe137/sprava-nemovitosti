@@ -16,18 +16,20 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
     .eq("id", id).maybeSingle();
   if (!x) notFound();
 
-  const [jednotky, smlouvy, vynosnost, katastr] = await Promise.all([
+  const [jednotky, vynosnost, katastr] = await Promise.all([
     supabase.from("nemovitost").select("id, typ_kod, nazev, stav, vyuziti, archivovano_dne").eq("nadrazena_id", id).order("nazev"),
-    supabase.from("najemni_smlouva").select("id, variabilni_symbol, datum_od, datum_do, stav, najemni_smlouva_osoba(osoba(jmeno, prijmeni, nazev_firmy))").eq("nemovitost_id", id).order("datum_od", { ascending: false }),
     supabase.from("v_vynosnost").select("*").eq("nemovitost_id", id).order("rok", { ascending: false }),
     supabase.from("katastralni_polozka").select("*").eq("nemovitost_id", id).order("druh").order("cislo_parcely"),
   ]);
   const polozky = katastr.data ?? [];
   const jedn = (jednotky.data ?? []).filter((j) => !j.archivovano_dne);
-  const { data: smlJednotek } = jedn.length
-    ? await supabase.from("najemni_smlouva").select("nemovitost_id, datum_od, datum_do, stav").in("nemovitost_id", jedn.map((j) => j.id))
-    : { data: [] };
-  const pronajato = pronajateIds([...(smlJednotek ?? []), ...(smlouvy.data ?? []).map((s) => ({ ...s, nemovitost_id: id }))]);
+  // smlouvy budovy i všech jejích jednotek (i archivovaných – kvůli historii)
+  const nazvyJednotek = new Map((jednotky.data ?? []).map((j) => [j.id, j.nazev as string]));
+  const smlouvy = await supabase.from("najemni_smlouva")
+    .select("id, nemovitost_id, variabilni_symbol, datum_od, datum_do, stav, najemni_smlouva_osoba(osoba(jmeno, prijmeni, nazev_firmy))")
+    .in("nemovitost_id", [id, ...nazvyJednotek.keys()])
+    .order("datum_od", { ascending: false });
+  const pronajato = pronajateIds(smlouvy.data ?? []);
   const obsazenost = jedn.length
     ? `${jedn.filter((j) => pronajato.has(j.id)).length} z ${jedn.length} jednotek pronajato`
     : x.vyuziti === "pronajem" ? (pronajato.has(id) ? "Pronajato" : "Volné") : "";
@@ -222,12 +224,14 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
           </section>
 
           <section className="karta overflow-x-auto text-sm lg:col-span-2">
-            <h2 className="mb-3 font-semibold">Nájemní smlouvy</h2>
+            <h2 className="mb-3 font-semibold">Nájemní smlouvy{nazvyJednotek.size ? " (včetně jednotek)" : ""}</h2>
             {(smlouvy.data ?? []).length === 0 ? <p className="text-sm text-slate-500">Žádné smlouvy.</p> : (
               <table className="tabulka"><tbody>
                 {(smlouvy.data ?? []).map((s) => (
                   <tr key={s.id}>
                     <td><Link href={`/smlouvy/${s.id}`} className="odkaz">VS {s.variabilni_symbol}</Link></td>
+                    {nazvyJednotek.size > 0 && <td>{s.nemovitost_id === id ? <span className="text-slate-500">celá nemovitost</span>
+                      : <Link href={`/nemovitosti/${s.nemovitost_id}`} className="odkaz">{nazvyJednotek.get(s.nemovitost_id)}</Link>}</td>}
                     <td>{(s.najemni_smlouva_osoba as unknown as { osoba: { jmeno: string; prijmeni: string; nazev_firmy: string } }[])
                       .map((o) => o.osoba?.nazev_firmy ?? `${o.osoba?.jmeno ?? ""} ${o.osoba?.prijmeni ?? ""}`).join(", ")}</td>
                     <td>{datum(s.datum_od)} – {s.datum_do ? datum(s.datum_do) : "neurčito"}</td>
