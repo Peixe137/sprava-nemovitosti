@@ -1,12 +1,13 @@
-import { KATEGORIE_OSOB } from "@/lib/format";
+import { STITKY_OSOB } from "@/lib/format";
+import { StitkyVyber } from "@/components/StitkyVyber";
 import { Odeslat } from "@/components/Odeslat";
 import { AresTlacitko } from "@/components/AresTlacitko";
 
 type V = Record<string, unknown>;
 const h = (v: V | undefined, k: string) => (v?.[k] == null ? undefined : String(v[k]));
 
-/** Kontakt v adresáři – firma nebo člověk, s kategoriemi (řemeslník, dodavatel, právník…). */
-export function FormularOsoby({ akce, v, tlacitko = "Uložit" }: { akce: (f: FormData) => Promise<void>; v?: V; tlacitko?: string }) {
+/** Kontakt v adresáři – firma nebo člověk, se štítky (řemeslník, dodavatel, právník… a vlastní). */
+export function FormularOsoby({ akce, v, tlacitko = "Uložit", stitky = [] }: { akce: (f: FormData) => Promise<void>; v?: V; tlacitko?: string; stitky?: string[] }) {
   const kat = (v?.kategorie as string[] | undefined) ?? [];
   return (
     <form action={akce} className="karta space-y-3 text-sm">
@@ -20,12 +21,8 @@ export function FormularOsoby({ akce, v, tlacitko = "Uložit" }: { akce: (f: For
         <label className="block"><span className="stitek">Příjmení</span><input name="prijmeni" defaultValue={h(v, "prijmeni")} className="pole" /></label>
       </div>
       <fieldset>
-        <legend className="stitek">Kategorie</legend>
-        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-          {Object.entries(KATEGORIE_OSOB).map(([k, x]) => (
-            <label key={k} className="flex items-center gap-1.5"><input type="checkbox" name="kategorie" value={k} defaultChecked={kat.includes(k)} />{x}</label>
-          ))}
-        </div>
+        <legend className="stitek">Štítky (lze vybrat víc)</legend>
+        <StitkyVyber name="kategorie" moznosti={[...STITKY_OSOB, ...stitky]} vychozi={kat} />
         <p className="mt-1 text-xs text-slate-500">Nájemníky a vlastníky aplikace pozná sama ze smluv a nemovitostí.</p>
       </fieldset>
       <div className="grid grid-cols-2 gap-2">

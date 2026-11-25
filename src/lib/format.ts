@@ -49,8 +49,7 @@ export const PLATFORMY: Record<string, { text: string; barva: string; svetla: st
   jine: { text: "Jiné", barva: "bg-violet-500", svetla: "bg-violet-50 text-violet-700" },
 };
 
-/** Kategorie v adresáři (nájemníci a vlastníci se poznají z vazeb, nezadávají se). */
-export const KATEGORIE_OSOB: Record<string, string> = {
-  remeslnik: "Řemeslník", dodavatel_energie: "Dodavatel energií", dodavatel_sluzeb: "Dodavatel služeb", pravnik: "Právník / advokát",
-  ucetni: "Účetní", urad: "Úřad", banka: "Banka", pojistovna: "Pojišťovna", realitni: "Realitní", jine: "Ostatní",
-};
+/** Výchozí nabídka štítků v adresáři; další si uživatel dopisuje (nájemníci a vlastníci se poznají z vazeb). */
+export const STITKY_OSOB = ["Řemeslník", "Dodavatel energií", "Dodavatel služeb", "Právník / advokát", "Účetní", "Úřad", "Banka", "Pojišťovna", "Realitní", "Ostatní"];
+/** Štítky, podle kterých je kontakt dodavatelem (nabízí se u nákladů). */
+export const STITKY_DODAVATELE = ["Řemeslník", "Dodavatel energií", "Dodavatel služeb"];

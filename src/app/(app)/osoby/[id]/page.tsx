@@ -11,12 +11,14 @@ export default async function Osoba({ params, searchParams }: PageProps<"/osoby/
   const { id } = await params;
   const { chyba } = await searchParams;
   const supabase = await supabaseServer();
-  const [{ data: o }, { data: kontakty }, { data: smlouvy }, { data: naklady }] = await Promise.all([
+  const [{ data: o }, { data: kontakty }, { data: smlouvy }, { data: naklady }, { data: vsechny }] = await Promise.all([
     supabase.from("osoba").select("*").eq("id", id).maybeSingle(),
     supabase.from("osoba").select("id, jmeno, prijmeni, funkce, telefon, email, poznamka").eq("firma_id", id).order("prijmeni"),
     supabase.from("najemni_smlouva_osoba").select("role, funkce, smlouva:smlouva_id(id, variabilni_symbol, stav, datum_od, datum_do, nemovitost(id, nazev))").eq("osoba_id", id),
     supabase.from("naklad").select("id, datum, castka_celkem, kategorie, nemovitost(nazev)").eq("dodavatel_id", id).order("datum", { ascending: false }).limit(10),
+    supabase.from("osoba").select("kategorie").neq("kategorie", "{}"),
   ]);
+  const stitky = Array.from(new Set((vsechny ?? []).flatMap((x) => (x.kategorie as string[]) ?? [])));
   if (!o) notFound();
   const nazev = o.nazev_firmy ?? `${o.jmeno ?? ""} ${o.prijmeni ?? ""}`.trim();
   type S = { role: string; funkce: string | null; smlouva: { id: string; variabilni_symbol: string; stav: string; datum_od: string; datum_do: string | null; nemovitost: { id: string; nazev: string } | null } | null };
@@ -29,7 +31,7 @@ export default async function Osoba({ params, searchParams }: PageProps<"/osoby/
         akce={<Link href="/osoby" className="tlacitko-svetle">← Adresář</Link>} />
       <Chyba text={chyba} />
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1"><FormularOsoby akce={upravitOsobu.bind(null, id)} v={o} /></div>
+        <div className="lg:col-span-1"><FormularOsoby akce={upravitOsobu.bind(null, id)} v={o} stitky={stitky} /></div>
         <div className="space-y-6 lg:col-span-2">
           {!o.firma_id && (
             <section id="kontakty" className="karta text-sm">
