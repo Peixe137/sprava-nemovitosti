@@ -27,6 +27,11 @@ const KAPITOLY: Kapitola[] = [
     ["Název jednotky", "K.ú. + č.p. budovy-patro a jednotka + popis v závorce, např. „Bechyně 147-101 (Pošta)“. Tlačítko „použít do názvu“ ho složí samo."],
     ["Archiv a smazání", "Upravit → Archivovat (prodáno, konec správy…) – vše zůstane v historii. Smazat jen omyly a duplicity (dole v Upravit)."],
   ] },
+  { id: "najemnici", nadpis: "Nájemníci a adresář", odkaz: "/najemnici", body: [
+    ["Přehled nájemníků", "Nájemníci → Přehled nájemníků: hledání, výběr nemovitosti (i celé budovy s jednotkami), filtry aktivní / neaktivní, dluží / nedluží a jen s otevřenými termíny."],
+    ["Adresář", "Nájemníci → Adresář: všechny kontakty – nájemníci a vlastníci (poznají se sami), řemeslníci, dodavatelé energií a služeb, právníci, účetní, úřady… Nový kontakt i s načtením z ARES."],
+    ["Kontaktní osoby", "U firmy v adresáři přidáte více kontaktních osob s funkcí, telefonem a e-mailem (vedoucí, účetní, technik)."],
+  ] },
   { id: "smlouvy", nadpis: "Nájemní smlouvy", odkaz: "/smlouvy", body: [
     ["Variabilní symbol", "LV + číslo jednotky + pořadí smlouvy: 19100011 = LV 1910, jednotka 001, 1. smlouva. Stejný VS nejde použít dvakrát."],
     ["Číslo smlouvy", "RRMMDD-LV-JJJ podle data začátku nájmu, např. 261201-1910-001. Vyplní se samo."],

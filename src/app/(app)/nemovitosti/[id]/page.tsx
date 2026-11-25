@@ -38,19 +38,60 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
   const vymeraCelkem = polozky.filter((k) => k.druh === "parcela").reduce((a, k) => a + Number(k.vymera_m2 ?? 0), 0);
   const DRUH: Record<string, string> = { parcela: "Pozemek", stavba: "Stavba", jednotka: "Jednotka" };
 
-  const udaje: [string, string][] = [
+  const vlastnici = (x.vlastnictvi ?? []).map((v: { podil_citatel: number; podil_jmenovatel: number; vlastnik: { nazev: string } }) =>
+    `${v.vlastnik?.nazev}${v.podil_jmenovatel > 1 ? ` (${v.podil_citatel}/${v.podil_jmenovatel})` : ""}`).join(", ") || "–";
+  const zakladni: [string, string][] = [
     ["Typ", `${x.typ_kod} – ${x.typ?.nazev ?? ""}`],
     ["Fáze", STAVY_NEMOVITOSTI[x.stav] ?? x.stav],
     ["Využití", [VYUZITI[x.vyuziti], obsazenost].filter(Boolean).join(" · ")],
     ...(x.patro != null ? [["Patro", x.patro === 0 ? "přízemí" : `${x.patro}.`] as [string, string]] : []),
     ...(x.kod_jednotky ? [["Označení jednotky", `${x.nadrazena?.cislo_popisne ? x.nadrazena.cislo_popisne + "-" : ""}${String(x.kod_jednotky).padStart(3, "0")}`] as [string, string]] : []),
-    ["Katastr", [x.katastralni_uzemi, x.lv && "LV " + x.lv, x.parcelni_cislo && "parc. " + x.parcelni_cislo].filter(Boolean).join(", ") || "–"],
-    ["Adresa", ([x.ulice, x.cislo_popisne, x.obec, x.psc].filter(Boolean).join(" ") || "–") + (x.nadrazena ? " (z budovy)" : "")],
-    ["Plocha", x.plocha_m2 ? `${x.plocha_m2} m²` : "–"],
-    ["Pořízení", `${korun(x.porizovaci_cena)} (${datum(x.datum_porizeni)})`],
-    ["Tržní hodnota", korun(x.trzni_hodnota)],
-    ["Vlastník", (x.vlastnictvi ?? []).map((v: { podil_citatel: number; podil_jmenovatel: number; vlastnik: { nazev: string } }) =>
-      `${v.vlastnik?.nazev}${v.podil_jmenovatel > 1 ? ` (${v.podil_citatel}/${v.podil_jmenovatel})` : ""}`).join(", ") || "–"],
+    ["Plocha", x.plocha_m2 ? `${Number(x.plocha_m2).toLocaleString("cs-CZ")} m²` : "–"],
+    ["Vlastník", vlastnici],
+  ];
+  const adresa = [[x.ulice, x.cislo_popisne].filter(Boolean).join(" "), [x.psc, x.obec].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const mistni: [string, string][] = [
+    ["Adresa", (adresa || "–") + (x.nadrazena ? " (z budovy)" : "")],
+    ["Katastrální území", x.katastralni_uzemi ?? "–"],
+    ["List vlastnictví", x.lv ? `LV ${x.lv}` : "–"],
+    ["Parcela", x.parcelni_cislo ?? "–"],
+    ...(vymeraCelkem > 0 ? [["Pozemky celkem", `${vymeraCelkem.toLocaleString("cs-CZ")} m²`] as [string, string]] : []),
+  ];
+  const mapa = x.zem_sirka && x.zem_delka
+    ? `https://mapy.cz/zakladni?source=coor&id=${x.zem_delka}%2C${x.zem_sirka}&x=${x.zem_delka}&y=${x.zem_sirka}&z=18`
+    : adresa ? `https://mapy.cz/zakladni?q=${encodeURIComponent(adresa)}` : null;
+
+  // výnosnost: vlastní řádky + jednotky, sečteno po letech
+  type Vy = { rok: number; najem_predepsany: number; najem_vybrany: number; ostatni_prijmy: number; provozni_naklady: number; cisty_provozni_vynos: number };
+  const { data: vyJednotek } = jedn.length ? await supabase.from("v_vynosnost").select("*").in("nemovitost_id", jedn.map((j) => j.id)) : { data: [] };
+  const poRocich = new Map<number, { rok: number; predepsano: number; vybrano: number; ostatni: number; naklady: number; vynos: number }>();
+  for (const v of [...(vynosnost.data ?? []), ...(vyJednotek ?? [])] as Vy[]) {
+    const r = poRocich.get(v.rok) ?? { rok: v.rok, predepsano: 0, vybrano: 0, ostatni: 0, naklady: 0, vynos: 0 };
+    r.predepsano += Number(v.najem_predepsany); r.vybrano += Number(v.najem_vybrany); r.ostatni += Number(v.ostatni_prijmy);
+    r.naklady += Number(v.provozni_naklady); r.vynos += Number(v.cisty_provozni_vynos);
+    poRocich.set(v.rok, r);
+  }
+  const roky = [...poRocich.values()].sort((a, b) => b.rok - a.rok);
+  const letos = poRocich.get(new Date().getFullYear()) ?? { predepsano: 0, vybrano: 0, ostatni: 0, naklady: 0, vynos: 0 };
+  const zakladCena = Number(x.porizovaci_cena ?? 0) + Number(x.vedlejsi_naklady_porizeni ?? 0);
+  const jeJednotka = !!x.nadrazena && !x.porizovaci_cena;
+  const financni: [string, string, string?][] = [
+    ["Pořizovací cena", jeJednotka ? "u budovy" : korun(x.porizovaci_cena)],
+    ["Datum pořízení", datum(x.datum_porizeni)],
+    ...(x.vedlejsi_naklady_porizeni ? [["Vedlejší náklady pořízení", korun(x.vedlejsi_naklady_porizeni)] as [string, string]] : []),
+    ["Tržní hodnota", jeJednotka && !x.trzni_hodnota ? "u budovy" : korun(x.trzni_hodnota)],
+    ...(zakladCena && x.trzni_hodnota ? [["Zhodnocení", korun(Number(x.trzni_hodnota) - zakladCena), Number(x.trzni_hodnota) >= zakladCena ? "plus" : "minus"] as [string, string, string]] : []),
+    ["Letos předepsáno", korun(letos.predepsano)],
+    ["Letos vybráno", korun(letos.vybrano + letos.ostatni), "plus"],
+    ["Letos náklady", korun(-letos.naklady), letos.naklady ? "minus" : ""],
+  ];
+  const dlazdice = [
+    { t: "Pořizovací cena", h: jeJednotka ? "u budovy" : korun(x.porizovaci_cena), p: x.datum_porizeni ? datum(x.datum_porizeni) : "", c: "dlazdice-modra" },
+    { t: "Tržní hodnota", h: korun(x.trzni_hodnota), p: "", c: "dlazdice-fialova" },
+    { t: "Letos příjmy", h: korun(letos.vybrano + letos.ostatni), p: `z předepsaných ${korun(letos.predepsano)}`, c: "dlazdice-zelena", cislo: "plus" },
+    { t: "Letos náklady", h: korun(-letos.naklady), p: "", c: "dlazdice-cervena", cislo: letos.naklady ? "minus" : "" },
+    { t: "Letos čistý výnos", h: korun(letos.vynos), p: "", c: letos.vynos >= 0 ? "dlazdice-zelena" : "dlazdice-cervena", cislo: letos.vynos >= 0 ? "plus" : "minus" },
+    { t: "Výnos z pořízení", h: zakladCena ? `${(letos.vynos / zakladCena * 100).toFixed(1)} %` : "–", p: x.trzni_hodnota ? `z tržní hodnoty ${(letos.vynos / Number(x.trzni_hodnota) * 100).toFixed(1)} %` : "", c: "dlazdice-oranzova" },
   ];
 
   return (
@@ -68,29 +109,42 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
         </div>} />
       <Chyba text={chyba} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* hlavní ukazatele: letošní rok, u budovy včetně jednotek */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {dlazdice.map((d) => (
+          <div key={d.t} className={d.c}>
+            <div className="stitek">{d.t}</div>
+            <div className={`text-lg font-semibold tabular-nums ${d.cislo ?? ""}`}>{d.h}</div>
+            {d.p && <div className="text-xs text-slate-500">{d.p}</div>}
+          </div>))}
+      </div>
+
+      <div className="grid gap-6 text-sm lg:grid-cols-3">
         <section className="karta">
-          <h2 className="mb-3 font-semibold">Údaje</h2>
-          <dl className="space-y-2 text-sm">
-            {udaje.map(([k, v]) => <div key={k}><dt className="stitek">{k}</dt><dd>{v}</dd></div>)}
+          <h2 className="mb-3 font-semibold">Základní údaje</h2>
+          <dl className="divide-y divide-slate-100">
+            {zakladni.map(([k, v]) => <div key={k} className="flex justify-between gap-4 py-1.5"><dt className="text-slate-500">{k}</dt><dd className="text-right">{v}</dd></div>)}
           </dl>
-          {x.poznamka && <p className="mt-3 text-sm text-slate-600">{x.poznamka}</p>}
+          {x.poznamka && <p className="mt-3 text-slate-600">{x.poznamka}</p>}
         </section>
 
-        {slozkaId && (
-          <section id="disk" className="karta lg:col-span-3">
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-semibold">Soubory na Disku{!x.drive_folder_url && x.nadrazena ? " (složka budovy)" : ""}</h2>
-              <a href={disk!} target="_blank" rel="noopener" className="text-sm odkaz">Otevřít v Google Disku ↗</a>
-            </div>
-            <iframe title="Soubory ve složce na Google Disku" src={`https://drive.google.com/embeddedfolderview?id=${slozkaId}#list`}
-              className="h-96 w-full rounded-lg border border-slate-200 bg-white" />
-            <p className="mt-2 text-xs text-slate-500">Seznam je vidět, když jste v prohlížeči přihlášen do Googlu účtem s přístupem ke složce. Kliknutím na soubor se otevře náhled.</p>
-          </section>
-        )}
+        <section className="karta">
+          <h2 className="mb-3 font-semibold">Adresa a katastr</h2>
+          <dl className="divide-y divide-slate-100">
+            {mistni.map(([k, v]) => <div key={k} className="flex justify-between gap-4 py-1.5"><dt className="text-slate-500">{k}</dt><dd className="text-right">{v}</dd></div>)}
+            {mapa && <div className="flex justify-between gap-4 py-1.5"><dt className="text-slate-500">Mapa</dt><dd><a href={mapa} target="_blank" rel="noopener" className="odkaz">Mapy.cz ↗</a></dd></div>}
+          </dl>
+        </section>
 
-        <div className="space-y-6 lg:col-span-2">
-          <section id="katastr" className="karta overflow-x-auto">
+        <section className="karta">
+          <h2 className="mb-3 font-semibold">Finance</h2>
+          <dl className="divide-y divide-slate-100">
+            {financni.map(([k, v, c]) => <div key={k} className="flex justify-between gap-4 py-1.5"><dt className="text-slate-500">{k}</dt><dd className={`text-right tabular-nums ${c ?? ""}`}>{v}</dd></div>)}
+          </dl>
+          <Link href={`/finance/naklady?nemovitost=${x.id}`} className="mt-3 inline-block odkaz">Náklady této nemovitosti →</Link>
+        </section>
+
+          <section id="katastr" className="karta overflow-x-auto lg:col-span-3">
             <div className="mb-3 flex items-baseline justify-between">
               <h2 className="font-semibold">Katastr – z čeho se nemovitost skládá</h2>
               {vymeraCelkem > 0 && <span className="text-sm text-slate-500">pozemky celkem {vymeraCelkem.toLocaleString("cs-CZ")} m²</span>}
@@ -155,7 +209,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
             </details>
           </section>
 
-          <section className="karta">
+          <section className="karta text-sm">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-semibold">Jednotky</h2>
               <Link href={`/nemovitosti/nova?nadrazena=${x.id}`} className="text-sm odkaz">+ Přidat jednotku</Link>
@@ -167,7 +221,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
             )}
           </section>
 
-          <section className="karta">
+          <section className="karta overflow-x-auto text-sm lg:col-span-2">
             <h2 className="mb-3 font-semibold">Nájemní smlouvy</h2>
             {(smlouvy.data ?? []).length === 0 ? <p className="text-sm text-slate-500">Žádné smlouvy.</p> : (
               <table className="tabulka"><tbody>
@@ -183,20 +237,32 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
             )}
           </section>
 
-          <section className="karta overflow-x-auto">
-            <h2 className="mb-3 font-semibold">Výnosnost</h2>
-            {(vynosnost.data ?? []).length === 0 ? <p className="text-sm text-slate-500">Zatím bez dat.</p> : (
-              <table className="tabulka">
-                <thead><tr><th>Rok</th><th className="text-right">Předepsáno</th><th className="text-right">Vybráno</th><th className="text-right">Náklady</th><th className="text-right">Čistý výnos</th><th className="text-right">% z pořízení</th></tr></thead>
-                <tbody>{(vynosnost.data ?? []).map((v) => (
-                  <tr key={v.rok}><td>{v.rok}</td><td className="text-right">{korun(v.najem_predepsany)}</td><td className="text-right">{korun(v.najem_vybrany)}</td>
-                    <td className="text-right">{korun(v.provozni_naklady)}</td><td className="text-right font-medium">{korun(v.cisty_provozni_vynos)}</td>
-                    <td className="text-right">{v.vynos_z_porizeni_pct != null ? `${v.vynos_z_porizeni_pct} %` : "–"}</td></tr>))}
-                </tbody>
-              </table>
-            )}
+        <section className="karta overflow-x-auto lg:col-span-3">
+          <h2 className="mb-3 font-semibold">Výnosnost po letech{jedn.length ? " (včetně jednotek)" : ""}</h2>
+          {roky.length === 0 ? <p className="text-slate-500">Zatím bez dat.</p> : (
+            <table className="tabulka">
+              <thead><tr><th>Rok</th><th className="text-right">Předepsáno</th><th className="text-right">Vybráno</th><th className="text-right">Ostatní příjmy</th><th className="text-right">Náklady</th><th className="text-right">Čistý výnos</th><th className="text-right">% z pořízení</th><th className="text-right">% z tržní hodnoty</th></tr></thead>
+              <tbody>{roky.map((v) => (
+                <tr key={v.rok}><td>{v.rok}</td><td className="text-right">{korun(v.predepsano)}</td><td className="text-right plus">{korun(v.vybrano)}</td>
+                  <td className="text-right">{v.ostatni ? korun(v.ostatni) : "–"}</td><td className="text-right minus">{v.naklady ? korun(-v.naklady) : "–"}</td>
+                  <td className={`text-right font-medium ${v.vynos >= 0 ? "plus" : "minus"}`}>{korun(v.vynos)}</td>
+                  <td className="text-right">{zakladCena ? `${(v.vynos / zakladCena * 100).toFixed(1)} %` : "–"}</td>
+                  <td className="text-right">{x.trzni_hodnota ? `${(v.vynos / Number(x.trzni_hodnota) * 100).toFixed(1)} %` : "–"}</td></tr>))}
+              </tbody>
+            </table>)}
+        </section>
+
+        {slozkaId && (
+          <section id="disk" className="karta lg:col-span-3">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-semibold">Soubory na Disku{!x.drive_folder_url && x.nadrazena ? " (složka budovy)" : ""}</h2>
+              <a href={disk!} target="_blank" rel="noopener" className="text-sm odkaz">Otevřít v Google Disku ↗</a>
+            </div>
+            <iframe title="Soubory ve složce na Google Disku" src={`https://drive.google.com/embeddedfolderview?id=${slozkaId}#list`}
+              className="h-96 w-full rounded-lg border border-slate-200 bg-white" />
+            <p className="mt-2 text-xs text-slate-500">Seznam je vidět, když jste v prohlížeči přihlášen do Googlu účtem s přístupem ke složce. Kliknutím na soubor se otevře náhled.</p>
           </section>
-        </div>
+        )}
       </div>
     </>
   );
