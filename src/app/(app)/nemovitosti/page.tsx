@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { STAVY_NEMOVITOSTI, VYUZITI, DUVODY_ARCHIVACE, korun, datum } from "@/lib/format";
-import { budouciNajem, pronajateIds } from "@/lib/obsazenost";
+import { budouciNajem, denPred, pronajateIds } from "@/lib/obsazenost";
 import { Nadpis } from "@/components/Chyba";
 
 type Nem = { id: string; nadrazena_id: string | null; typ_kod: string; nazev: string; stav: string; vyuziti: string; upozorneni: string | null; obec: string | null; ulice: string | null; cislo_popisne: string | null; psc: string | null; zem_sirka: number | null; zem_delka: number | null; lv: string | null; trzni_hodnota: number | null; drive_folder_url: string | null; archivovano_dne: string | null; duvod_archivace: string | null; vlastnictvi: { vlastnik: { nazev: string; zkratka: string | null } | null }[] };
@@ -36,7 +36,7 @@ export default async function Nemovitosti({ searchParams }: PageProps<"/nemovito
   const stavText = (x: Nem) => {
     const d = deti(x.id);
     const obs = d.length ? `${d.filter((j) => pronajato.has(j.id)).length}/${d.length} pronajato`
-      : x.vyuziti === "pronajem" ? (pronajato.has(x.id) ? "Pronajato" : budouci.has(x.id) ? `Pronajato od ${datum(budouci.get(x.id))}` : "Volné") : VYUZITI[x.vyuziti];
+      : x.vyuziti === "pronajem" ? (pronajato.has(x.id) ? "Pronajato" : budouci.has(x.id) ? `V rezervaci do ${datum(denPred(budouci.get(x.id)!))}` : "Volné") : VYUZITI[x.vyuziti];
     return x.stav === "drzeni" ? obs : `${STAVY_NEMOVITOSTI[x.stav]} · ${obs}`;
   };
 

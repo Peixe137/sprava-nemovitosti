@@ -29,7 +29,7 @@ export default async function Smlouvy() {
                 <td>{s.pronajimatel?.nazev}</td>
                 <td>{datum(s.datum_od)} – {s.datum_do ? datum(s.datum_do) : "neurčito"}</td>
                 <td>{s.den_splatnosti}. v měsíci</td>
-                <td>{s.stav}</td>
+                <td>{s.stav === "aktivni" && s.datum_od > new Date().toISOString().slice(0, 10) ? <>aktivní <span className="text-xs text-blue-700">(začíná {datum(s.datum_od)})</span></> : s.stav}</td>
               </tr>))}
             </tbody>
           </table>

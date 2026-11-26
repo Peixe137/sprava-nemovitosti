@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { STAVY_NEMOVITOSTI, VYUZITI, korun, datum, DUVODY_ARCHIVACE } from "@/lib/format";
-import { budouciNajem, pronajateIds } from "@/lib/obsazenost";
+import { budouciNajem, denPred, pronajateIds } from "@/lib/obsazenost";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniPolozku } from "../actions";
 import { Odeslat } from "@/components/Odeslat";
@@ -33,7 +33,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
     .order("datum_od", { ascending: false });
   const pronajato = pronajateIds(smlouvy.data ?? []);
   const budouci = budouciNajem(smlouvy.data ?? []);
-  const volne = (nid: string) => budouci.has(nid) ? `Volné, pronajato od ${datum(budouci.get(nid))}` : "Volné";
+  const volne = (nid: string) => budouci.has(nid) ? `V rezervaci do ${datum(denPred(budouci.get(nid)!))} (nájem od ${datum(budouci.get(nid))})` : "Volné";
   const obsazenost = jedn.length
     ? `${jedn.filter((j) => pronajato.has(j.id)).length} z ${jedn.length} jednotek pronajato`
     : x.vyuziti === "pronajem" ? (pronajato.has(id) ? "Pronajato" : volne(id)) : "";

@@ -5,6 +5,9 @@ export function pronajateIds(smlouvy: SmlouvaObdobi[], dnes = new Date().toISOSt
 }
 
 /** Nemovitosti, které dnes volné jsou, ale mají už podepsanou smlouvu od budoucího data → nejbližší datum začátku. */
+/** Den před začátkem smlouvy – do kdy je nemovitost „v rezervaci“. */
+export const denPred = (d: string) => { const x = new Date(d + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() - 1); return x.toISOString().slice(0, 10); };
+
 export function budouciNajem(smlouvy: SmlouvaObdobi[], dnes = new Date().toISOString().slice(0, 10)) {
   const m = new Map<string, string>();
   for (const s of smlouvy) {
