@@ -143,7 +143,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
           <dl className="divide-y divide-slate-100">
             {financni.map(([k, v, c]) => <div key={k} className="flex justify-between gap-4 py-1.5"><dt className="text-slate-500">{k}</dt><dd className={`text-right tabular-nums ${c ?? ""}`}>{v}</dd></div>)}
           </dl>
-          <Link href={`/finance/naklady?nemovitost=${x.id}`} className="mt-3 inline-block odkaz">Náklady této nemovitosti →</Link>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1"><Link href={`/finance?nemovitost=${x.id}`} className="odkaz">Cashflow →</Link><Link href={`/finance/naklady?nemovitost=${x.id}`} className="odkaz">Náklady této nemovitosti →</Link></div>
         </section>
 
           <section id="katastr" className="karta overflow-x-auto lg:col-span-3">
