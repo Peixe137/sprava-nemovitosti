@@ -6,10 +6,12 @@ import { pronajateIds } from "@/lib/obsazenost";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniPolozku } from "../actions";
 import { Odeslat } from "@/components/Odeslat";
+import { DiskSoubory } from "@/components/DiskSoubory";
+import { diskNapojen, idSlozky } from "@/lib/googleDisk";
 
 export default async function DetailNemovitosti({ params, searchParams }: PageProps<"/nemovitosti/[id]">) {
   const { id } = await params;
-  const { chyba, uprav } = await searchParams;
+  const { chyba, uprav, disk: diskParam } = await searchParams;
   const supabase = await supabaseServer();
   const { data: x } = await supabase.from("nemovitost")
     .select("*, typ:typ_nemovitosti(nazev), nadrazena:nadrazena_id(id, nazev, drive_folder_url, cislo_popisne), vlastnictvi(podil_citatel, podil_jmenovatel, vlastnik(nazev, zkratka))")
@@ -36,7 +38,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
   // jednotka bez vlastní podsložky otevře složku budovy
   const disk: string | null = x.drive_folder_url ?? x.nadrazena?.drive_folder_url ?? null;
   // ID složky z odkazu …/folders/<id> nebo ?id=<id> (pro náhled souborů přímo zde)
-  const slozkaId = disk?.match(/\/folders\/([\w-]+)/)?.[1] ?? disk?.match(/[?&]id=([\w-]+)/)?.[1] ?? null;
+  const slozkaId = idSlozky(disk);
   const vymeraCelkem = polozky.filter((k) => k.druh === "parcela").reduce((a, k) => a + Number(k.vymera_m2 ?? 0), 0);
   const DRUH: Record<string, string> = { parcela: "Pozemek", stavba: "Stavba", jednotka: "Jednotka" };
 
@@ -262,9 +264,13 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
               <h2 className="font-semibold">Soubory na Disku{!x.drive_folder_url && x.nadrazena ? " (složka budovy)" : ""}</h2>
               <a href={disk!} target="_blank" rel="noopener" className="text-sm odkaz">Otevřít v Google Disku ↗</a>
             </div>
-            <iframe title="Soubory ve složce na Google Disku" src={`https://drive.google.com/embeddedfolderview?id=${slozkaId}#list`}
-              className="h-96 w-full rounded-lg border border-slate-200 bg-white" />
-            <p className="mt-2 text-xs text-slate-500">Seznam je vidět, když jste v prohlížeči přihlášen do Googlu účtem s přístupem ke složce. Kliknutím na soubor se otevře náhled.</p>
+            {diskNapojen() ? (
+              <DiskSoubory nemovitostId={x.id} korenId={slozkaId} slozkaId={typeof diskParam === "string" ? diskParam : undefined} />
+            ) : (<>
+              <iframe title="Soubory ve složce na Google Disku" src={`https://drive.google.com/embeddedfolderview?id=${slozkaId}#list`}
+                className="h-96 w-full rounded-lg border border-slate-200 bg-white" />
+              <p className="mt-2 text-xs text-slate-500">Seznam je vidět, když jste v prohlížeči přihlášen do Googlu účtem s přístupem ke složce. Kliknutím na soubor se otevře náhled.</p>
+            </>)}
           </section>
         )}
       </div>
