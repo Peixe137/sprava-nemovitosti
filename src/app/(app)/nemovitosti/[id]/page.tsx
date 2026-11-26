@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { STAVY_NEMOVITOSTI, VYUZITI, korun, datum, DUVODY_ARCHIVACE } from "@/lib/format";
-import { pronajateIds } from "@/lib/obsazenost";
+import { budouciNajem, pronajateIds } from "@/lib/obsazenost";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniPolozku } from "../actions";
 import { Odeslat } from "@/components/Odeslat";
@@ -32,9 +32,11 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
     .in("nemovitost_id", [id, ...nazvyJednotek.keys()])
     .order("datum_od", { ascending: false });
   const pronajato = pronajateIds(smlouvy.data ?? []);
+  const budouci = budouciNajem(smlouvy.data ?? []);
+  const volne = (nid: string) => budouci.has(nid) ? `Volné, pronajato od ${datum(budouci.get(nid))}` : "Volné";
   const obsazenost = jedn.length
     ? `${jedn.filter((j) => pronajato.has(j.id)).length} z ${jedn.length} jednotek pronajato`
-    : x.vyuziti === "pronajem" ? (pronajato.has(id) ? "Pronajato" : "Volné") : "";
+    : x.vyuziti === "pronajem" ? (pronajato.has(id) ? "Pronajato" : volne(id)) : "";
   // jednotka bez vlastní podsložky otevře složku budovy
   const disk: string | null = x.drive_folder_url ?? x.nadrazena?.drive_folder_url ?? null;
   // ID složky z odkazu …/folders/<id> nebo ?id=<id> (pro náhled souborů přímo zde)
@@ -221,7 +223,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
             {(jednotky.data ?? []).length === 0 ? <p className="text-sm text-slate-500">Bez jednotek.</p> : (
               <ul className="space-y-1 text-sm">{(jednotky.data ?? []).map((j) =>
                 <li key={j.id}><span className="mr-2 text-xs font-semibold text-slate-500">{j.typ_kod}</span>
-                  <Link href={`/nemovitosti/${j.id}`} className="odkaz">{j.nazev}</Link> · {j.archivovano_dne ? <span className="text-slate-400">archiv</span> : j.vyuziti === "pronajem" ? (pronajato.has(j.id) ? "pronajato" : <span className="text-blue-700">volné</span>) : VYUZITI[j.vyuziti]}</li>)}</ul>
+                  <Link href={`/nemovitosti/${j.id}`} className="odkaz">{j.nazev}</Link> · {j.archivovano_dne ? <span className="text-slate-400">archiv</span> : j.vyuziti === "pronajem" ? (pronajato.has(j.id) ? "pronajato" : <span className="text-blue-700">{volne(j.id).toLowerCase()}</span>) : VYUZITI[j.vyuziti]}</li>)}</ul>
             )}
           </section>
 

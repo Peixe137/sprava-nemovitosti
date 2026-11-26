@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { STAVY_NEMOVITOSTI, VYUZITI, DUVODY_ARCHIVACE, korun, datum } from "@/lib/format";
-import { pronajateIds } from "@/lib/obsazenost";
+import { budouciNajem, pronajateIds } from "@/lib/obsazenost";
 import { Nadpis } from "@/components/Chyba";
 
 type Nem = { id: string; nadrazena_id: string | null; typ_kod: string; nazev: string; stav: string; vyuziti: string; upozorneni: string | null; obec: string | null; ulice: string | null; cislo_popisne: string | null; psc: string | null; zem_sirka: number | null; zem_delka: number | null; lv: string | null; trzni_hodnota: number | null; drive_folder_url: string | null; archivovano_dne: string | null; duvod_archivace: string | null; vlastnictvi: { vlastnik: { nazev: string; zkratka: string | null } | null }[] };
@@ -27,6 +27,7 @@ export default async function Nemovitosti({ searchParams }: PageProps<"/nemovito
   const deti = (id: string) => vse.filter((x) => x.nadrazena_id === id);
   const { data: sml } = await supabase.from("najemni_smlouva").select("nemovitost_id, datum_od, datum_do, stav").eq("stav", "aktivni");
   const pronajato = pronajateIds(sml ?? []);
+  const budouci = budouciNajem(sml ?? []);
   const adresa = (x: Nem) => [[x.ulice, x.cislo_popisne].filter(Boolean).join(" "), x.obec].filter(Boolean).join(", ");
   // Mapy.cz: přesný bod podle souřadnic z RÚIAN, jinak hledání podle adresy
   const mapa = (x: Nem) => x.zem_sirka && x.zem_delka
@@ -35,7 +36,7 @@ export default async function Nemovitosti({ searchParams }: PageProps<"/nemovito
   const stavText = (x: Nem) => {
     const d = deti(x.id);
     const obs = d.length ? `${d.filter((j) => pronajato.has(j.id)).length}/${d.length} pronajato`
-      : x.vyuziti === "pronajem" ? (pronajato.has(x.id) ? "Pronajato" : "Volné") : VYUZITI[x.vyuziti];
+      : x.vyuziti === "pronajem" ? (pronajato.has(x.id) ? "Pronajato" : budouci.has(x.id) ? `Pronajato od ${datum(budouci.get(x.id))}` : "Volné") : VYUZITI[x.vyuziti];
     return x.stav === "drzeni" ? obs : `${STAVY_NEMOVITOSTI[x.stav]} · ${obs}`;
   };
 
