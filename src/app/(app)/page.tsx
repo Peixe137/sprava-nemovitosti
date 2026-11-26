@@ -37,8 +37,12 @@ export default async function Prehled() {
   const sPodrizenymi = new Set(vse.map((x) => x.nadrazena_id).filter(Boolean));
   const pronajimatelne = vse.filter((x) => !sPodrizenymi.has(x.id) && !["P", "D"].includes(x.typ_kod) && x.stav !== "v_nakupu" && x.vyuziti === "pronajem");
   const obsazene = new Set((smlouvy.data ?? []).filter((s) => s.datum_od <= dnes && (!s.datum_do || s.datum_do >= dnes)).map((s) => s.nemovitost_id));
-  const volne = pronajimatelne.filter((x) => !obsazene.has(x.id));
-  const pocetObsazenych = pronajimatelne.length - volne.length;
+  // podepsaná smlouva, která teprve začne → „v rezervaci“, není to volná jednotka
+  const zacatekBudouci = new Map<string, string>();
+  for (const s of smlouvy.data ?? []) if (s.datum_od > dnes && (!zacatekBudouci.has(s.nemovitost_id) || s.datum_od < zacatekBudouci.get(s.nemovitost_id)!)) zacatekBudouci.set(s.nemovitost_id, s.datum_od);
+  const rezervovane = pronajimatelne.filter((x) => !obsazene.has(x.id) && zacatekBudouci.has(x.id));
+  const volne = pronajimatelne.filter((x) => !obsazene.has(x.id) && !zacatekBudouci.has(x.id));
+  const pocetObsazenych = pronajimatelne.length - volne.length - rezervovane.length;
   const procento = pronajimatelne.length ? Math.round((pocetObsazenych / pronajimatelne.length) * 100) : 0;
 
   const koncici = (smlouvy.data ?? []).filter((s) => s.datum_do && s.datum_do >= dnes && s.datum_do <= zaDni(90));
@@ -52,7 +56,8 @@ export default async function Prehled() {
   if (volne.length) upozorneni.push({ text: `${volne.length}× volná jednotka k pronájmu`, href: "#volne", ton: "modra" });
 
   const hodina = new Date().toLocaleString("cs-CZ", { hour: "numeric", timeZone: "Europe/Prague" });
-  const pozdrav = Number(hodina) < 10 ? "Dobré ráno" : Number(hodina) < 18 ? "Dobrý den" : "Dobrý večer";
+  const h = Number(hodina);
+  const pozdrav = h < 4 || h >= 22 ? "Dobrou noc" : h < 10 ? "Dobré ráno" : h < 18 ? "Dobrý den" : "Dobrý večer";
 
   return (
     <>
@@ -80,7 +85,7 @@ export default async function Prehled() {
           <div className="stitek">Obsazenost</div>
           <div className="text-2xl font-semibold">{procento} %</div>
           <div className="mt-2 h-1.5 rounded-full bg-white"><div className="h-1.5 rounded-full bg-blue-500" style={{ width: `${procento}%` }} /></div>
-          <div className="mt-1 text-xs text-slate-500">{pocetObsazenych} pronajato · {volne.length} volných</div>
+          <div className="mt-1 text-xs text-slate-500">{pocetObsazenych} pronajato{rezervovane.length ? ` · ${rezervovane.length} v rezervaci` : ""} · {volne.length} volných</div>
         </div>
         <Link href="/smlouvy" className="dlazdice-fialova hover:border-violet-300">
           <div className="stitek">Aktivní smlouvy</div>
@@ -128,7 +133,14 @@ export default async function Prehled() {
 
         <section id="volne" className="karta">
           <h2 className="mb-3 font-semibold">Volné jednotky</h2>
-          {volne.length === 0 ? <p className="text-sm text-slate-500">Vše je pronajato.</p> : (
+          {rezervovane.length > 0 && (
+            <ul className="mb-3 space-y-2 text-sm">{rezervovane.map((v) => (
+              <li key={v.id} className="flex justify-between gap-2">
+                <Link href={`/nemovitosti/${v.id}`} className="odkaz">{v.nazev}</Link>
+                <span className="text-xs whitespace-nowrap text-blue-700">v rezervaci, nájem od {datum(zacatekBudouci.get(v.id))}</span>
+              </li>))}</ul>
+          )}
+          {volne.length === 0 ? <p className="text-sm text-slate-500">{rezervovane.length ? "Jinak je vše pronajato." : "Vše je pronajato."}</p> : (
             <ul className="space-y-2 text-sm">{volne.slice(0, 8).map((v) => (
               <li key={v.id} className="flex justify-between gap-2">
                 <Link href={`/nemovitosti/${v.id}`} className="odkaz">{v.nazev}</Link>
