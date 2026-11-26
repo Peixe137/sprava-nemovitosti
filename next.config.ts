@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/dluznici", destination: "/finance/dluznici", permanent: true }];
   },
+  // nahrávání bankovních výpisů (soubor jde přes Server Action)
+  experimental: { serverActions: { bodySizeLimit: "5mb" } },
   turbopack: {
     rules: {
       "*.css": {
