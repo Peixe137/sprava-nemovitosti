@@ -4,7 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { DRUHY_PREDPISU, STAVY_POHLEDAVKY, PERIODY, korun, datum, mesic } from "@/lib/format";
 import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
-import { doplnitPredpisy, prepocitatPlatby, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt } from "../actions";
+import { doplnitPredpisy, prepocitatPlatby, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt, upravitPodminky } from "../actions";
 
 export default async function DetailSmlouvy({ params, searchParams }: PageProps<"/smlouvy/[id]">) {
   const { id } = await params;
@@ -81,6 +81,19 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
               <div><dt className="stitek">Kauce</dt><dd>{korun(s.kauce_castka)}</dd></div>
               <div><dt className="stitek">Nemovitost</dt><dd><Link href={`/nemovitosti/${s.nemovitost?.id}`} className="odkaz">{s.nemovitost?.nazev}</Link></dd></div>
             </dl>
+            <details className="mt-4 border-t border-slate-100 pt-3">
+              <summary className="cursor-pointer text-blue-700">Upravit podmínky (období, splatnost, kauce)</summary>
+              <form action={upravitPodminky.bind(null, id)} className="mt-3 grid gap-2 sm:grid-cols-2">
+                <label className="block"><span className="stitek">Začátek</span><input type="date" name="datum_od" required defaultValue={s.datum_od} className="pole" /></label>
+                <label className="block"><span className="stitek">Konec (prázdné = neurčito)</span><input type="date" name="datum_do" defaultValue={s.datum_do ?? ""} className="pole" /></label>
+                <label className="block"><span className="stitek">Den splatnosti v měsíci</span><input type="number" name="den_splatnosti" min={1} max={31} required defaultValue={s.den_splatnosti} className="pole" /></label>
+                <label className="block"><span className="stitek">Kauce (Kč)</span><input name="kauce_castka" inputMode="decimal" defaultValue={s.kauce_castka ?? ""} className="pole" /></label>
+                <label className="flex items-center gap-2 sm:col-span-2"><input type="checkbox" name="splatnost_predem" defaultChecked={!!s.splatnost_predem} />
+                  Platí se předem (splatnost v tom měsíci, za který se platí); jinak až v následujícím měsíci</label>
+                <p className="text-xs text-slate-500 sm:col-span-2">Po uložení se platby přepočítají: nezaplacené dostanou novou splatnost, už zaplacené částky zůstanou.</p>
+                <div className="sm:col-span-2"><Odeslat>Uložit podmínky</Odeslat></div>
+              </form>
+            </details>
           </section>
           <section className="karta text-sm">
             <h2 className="mb-3 font-semibold">Předpis plateb</h2>

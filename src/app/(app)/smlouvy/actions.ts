@@ -139,3 +139,18 @@ export async function odebratKontakt(smlouvaId: string, osobaId: string) {
   const { error } = await supabase.from("najemni_smlouva_osoba").delete().eq("smlouva_id", smlouvaId).eq("osoba_id", osobaId).neq("role", "najemce");
   zpet(smlouvaId, error?.message);
 }
+
+/** Úprava podmínek smlouvy (období, den splatnosti, kauce); nezaplacené platby dostanou novou splatnost, zaplacené zůstanou. */
+export async function upravitPodminky(smlouvaId: string, f: FormData) {
+  const supabase = await supabaseServer();
+  const den = n(f, "den_splatnosti");
+  if (!den || den < 1 || den > 31) zpet(smlouvaId, "Den splatnosti musí být 1–31.");
+  const od = t(f, "datum_od"), doo = t(f, "datum_do");
+  if (!od) zpet(smlouvaId, "Vyplňte začátek smlouvy.");
+  if (doo && od && doo < od) zpet(smlouvaId, "Konec smlouvy je před jejím začátkem.");
+  const { error } = await supabase.from("najemni_smlouva").update({
+    datum_od: od, datum_do: doo, den_splatnosti: den, splatnost_predem: f.get("splatnost_predem") === "on", kauce_castka: n(f, "kauce_castka"),
+  }).eq("id", smlouvaId);
+  if (error) zpet(smlouvaId, error.message);
+  zpet(smlouvaId, await prepocitat(supabase, smlouvaId));
+}
