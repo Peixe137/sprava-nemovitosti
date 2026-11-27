@@ -4,7 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { DRUHY_PREDPISU, STAVY_POHLEDAVKY, PERIODY, korun, datum, mesic } from "@/lib/format";
 import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
-import { doplnitPredpisy, prepocitatPlatby, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt, upravitPodminky } from "../actions";
+import { doplnitPredpisy, prepocitatPlatby, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt, upravitPodminky, vratitKauci } from "../actions";
 
 export default async function DetailSmlouvy({ params, searchParams }: PageProps<"/smlouvy/[id]">) {
   const { id } = await params;
@@ -78,7 +78,17 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
             <dl className="space-y-2">
               <div><dt className="stitek">Období</dt><dd>{datum(s.datum_od)} – {s.datum_do ? datum(s.datum_do) : "doba neurčitá"}</dd></div>
               <div><dt className="stitek">Splatnost</dt><dd>{s.den_splatnosti}. den v měsíci{s.splatnost_predem ? " (předem)" : ""}</dd></div>
-              <div><dt className="stitek">Kauce</dt><dd>{korun(s.kauce_castka)}</dd></div>
+              <div><dt className="stitek">Kauce</dt><dd>{Number(s.kauce_castka) > 0 ? (<>
+                {korun(s.kauce_castka)}{" "}
+                {s.kauce_vracena_dne ? <span className="text-xs text-slate-500">· vrácena {datum(s.kauce_vracena_dne)}</span>
+                  : s.kauce_prijata_dne ? <span className="text-xs plus">· složena {datum(s.kauce_prijata_dne)}</span>
+                  : <span className="text-xs text-amber-700">· čeká na zaplacení (v Platbách)</span>}
+                {s.kauce_prijata_dne && (
+                  <form action={vratitKauci.bind(null, id)} className="mt-1 flex items-center gap-2 text-xs">
+                    {s.kauce_vracena_dne ? <><input type="hidden" name="zrusit" value="1" /><button className="text-slate-500 hover:underline">zrušit vrácení</button></>
+                      : <><input type="date" name="datum" defaultValue={dnes} className="pole w-auto py-0.5 text-xs" /><button className="rounded-md border border-slate-300 px-2 py-0.5 hover:bg-slate-50">Kauce vrácena</button></>}
+                  </form>)}
+              </>) : "–"}</dd></div>
               <div><dt className="stitek">Nemovitost</dt><dd><Link href={`/nemovitosti/${s.nemovitost?.id}`} className="odkaz">{s.nemovitost?.nazev}</Link></dd></div>
             </dl>
             <details className="mt-4 border-t border-slate-100 pt-3">
@@ -148,7 +158,7 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
                 const poSplatnosti = zbyva > 0 && p.splatnost < dnes;
                 return (
                   <tr key={p.id}>
-                    <td>{mesic(p.obdobi)}</td>
+                    <td>{p.druh === "kauce" ? <b>Kauce</b> : mesic(p.obdobi)}</td>
                     <td className={poSplatnosti ? "font-medium text-red-700" : ""}>{datum(p.splatnost)}</td>
                     <td className="text-right">{korun(p.castka)}</td>
                     <td className="text-right">{korun(p.uhrazeno)}</td>

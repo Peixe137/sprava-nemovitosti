@@ -154,3 +154,10 @@ export async function upravitPodminky(smlouvaId: string, f: FormData) {
   if (error) zpet(smlouvaId, error.message);
   zpet(smlouvaId, await prepocitat(supabase, smlouvaId));
 }
+
+/** Vrácení kauce nájemníkovi (nebo zrušení údaje o vrácení). */
+export async function vratitKauci(smlouvaId: string, f: FormData) {
+  const supabase = await supabaseServer();
+  const { error } = await supabase.from("najemni_smlouva").update({ kauce_vracena_dne: f.get("zrusit") ? null : t(f, "datum") ?? new Date().toISOString().slice(0, 10) }).eq("id", smlouvaId);
+  zpet(smlouvaId, error?.message);
+}

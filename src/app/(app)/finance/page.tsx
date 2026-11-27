@@ -18,7 +18,7 @@ export default async function FinancePrehled({ searchParams }: PageProps<"/finan
   const nemId = typeof sp.nemovitost === "string" ? sp.nemovitost : "";
 
   const supabase = await supabaseServer();
-  const [pohl, nakl, ost, rez, dluh, smlouvy, podrizene, moznosti] = await Promise.all([
+  const [pohl, nakl, ost, rez, dluh, smlouvy, podrizene, moznosti, kauce] = await Promise.all([
     supabase.from("pohledavka").select("obdobi, castka, uhrazeno, smlouva_id").eq("druh", "mesicni"),
     supabase.from("naklad").select("datum, kategorie, castka_celkem, nemovitost_id"),
     supabase.from("prijem_ostatni").select("datum, castka, nemovitost_id"),
@@ -27,6 +27,7 @@ export default async function FinancePrehled({ searchParams }: PageProps<"/finan
     supabase.from("najemni_smlouva").select("id, nemovitost_id"),
     nemId ? supabase.from("nemovitost").select("id").eq("nadrazena_id", nemId) : Promise.resolve({ data: [] as { id: string }[] }),
     moznostiNemovitosti(supabase, { vcetneArchivu: true }),
+    supabase.from("pohledavka").select("uhrazeno, smlouva_id, najemni_smlouva(kauce_vracena_dne)").eq("druh", "kauce"),
   ]);
 
   // výběr nemovitosti: budova včetně svých jednotek
@@ -77,6 +78,8 @@ export default async function FinancePrehled({ searchParams }: PageProps<"/finan
   const soucet = (k: keyof Omit<Sloupec, "klic" | "popis">) => sloupce.reduce((a, s) => a + s[k], 0);
   const predepsano = soucet("predepsano"), vybrano = soucet("vybrano"), ostatni = soucet("ostatni"), naklady = soucet("naklady");
   const prijmy = vybrano + ostatni;
+  const kauceCelkem = (kauce.data ?? []).filter((k) => patri(nemSmlouvy.get(k.smlouva_id)) && !(k.najemni_smlouva as unknown as { kauce_vracena_dne: string | null } | null)?.kauce_vracena_dne)
+    .reduce((a, k) => a + Number(k.uhrazeno), 0);
   const dluhCelkem = (dluh.data ?? []).filter((d) => patri(nemSmlouvy.get(d.smlouva_id))).reduce((a, d) => a + Number(d.dluh), 0);
   const maxSloupec = Math.max(1, ...sloupce.map((x) => Math.max(x.vybrano + x.ostatni, x.naklady, x.predepsano)));
   const strukturaRazena = [...struktura.entries()].sort((a, b) => b[1] - a[1]);
@@ -91,6 +94,7 @@ export default async function FinancePrehled({ searchParams }: PageProps<"/finan
     { text: "Náklady", hodnota: korun(-naklady), pozn: `${pocetNakladu} položek`, href: "/finance/naklady", tridy: "dlazdice-cervena", cislo: naklady ? "minus" : "" },
     { text: "Dluží celkem", hodnota: korun(dluhCelkem), pozn: "po splatnosti, všechna léta", href: "/finance/dluznici",
       tridy: dluhCelkem > 0 ? "dlazdice-oranzova" : "dlazdice-zelena", cislo: dluhCelkem > 0 ? "text-amber-700" : "plus" },
+    { text: "Složené kauce", hodnota: korun(kauceCelkem), pozn: "drží se u nás, k vrácení", href: "/finance/kauce", tridy: "dlazdice-zelena", cislo: "" },
   ];
   const BARVY = ["bg-blue-500", "bg-violet-500", "bg-amber-500", "bg-rose-500", "bg-emerald-500", "bg-cyan-500", "bg-fuchsia-500", "bg-lime-500"];
   const roky = Array.from({ length: Math.max(posledniRok, ted) - prvniRok + 1 }, (_, i) => Math.max(posledniRok, ted) - i);
@@ -132,7 +136,7 @@ export default async function FinancePrehled({ searchParams }: PageProps<"/finan
         </div>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {dlazdice.map((d) => {
           const obsah = (<>
             <div className="stitek">{d.text}</div>

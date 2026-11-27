@@ -59,3 +59,15 @@ export const OMEZENI: Record<string, string> = {
   zastava: "Zástavní právo", exekuce: "Exekuce", vecne_bremeno: "Věcné břemeno",
   predkupni_pravo: "Předkupní právo", zakaz_zcizeni: "Zákaz zcizení / zatížení", jine: "Jiné omezení",
 };
+
+/** Úkoly a termíny */
+export const DRUHY_TERMINU: Record<string, string> = {
+  ukol: "Úkol", revize: "Revize", pojisteni: "Pojištění", dan_z_nemovitosti: "Daň z nemovitosti", valorizace: "Valorizace nájmu",
+  vyuctovani: "Vyúčtování", cejch_meridla: "Cejch měřidla", konec_smlouvy: "Konec smlouvy", jiny: "Jiný termín",
+};
+export const PRIORITY: Record<string, { text: string; tecka: string; radek: string; stitek: string }> = {
+  urgentni: { text: "Urgentní", tecka: "bg-red-500", radek: "border-l-4 border-l-red-500", stitek: "bg-red-100 text-red-800" },
+  dulezite: { text: "Důležité", tecka: "bg-emerald-500", radek: "border-l-4 border-l-emerald-500", stitek: "bg-emerald-100 text-emerald-800" },
+  nedulezite: { text: "Nedůležité", tecka: "bg-slate-300", radek: "border-l-4 border-l-slate-300", stitek: "bg-slate-100 text-slate-600" },
+};
+export const OPAKOVANI: Record<string, string> = { zadne: "Neopakuje se", mesicne: "Každý měsíc", rocne: "Každý rok", dvouletne: "Každé 2 roky", petilete: "Každých 5 let" };

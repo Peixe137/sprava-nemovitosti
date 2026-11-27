@@ -9,15 +9,16 @@ const SEKCE: Sekce[] = [
   { nadpis: "", polozky: [{ href: "/", text: "Přehled" }] },
   { nadpis: "Nemovitosti", barva: "bg-blue-500", polozky: [{ href: "/nemovitosti", text: "Seznam" }, { href: "/nemovitosti/nova", text: "Nová" }] },
   { nadpis: "Nájemníci", barva: "bg-violet-500", polozky: [{ href: "/najemnici", text: "Přehled nájemníků" }, { href: "/smlouvy", text: "Nájemní smlouvy" }, { href: "/kratkodobe", text: "Krátkodobé pronájmy" }, { href: "/osoby", text: "Adresář" }, { href: "/vlastnici", text: "Vlastníci" }] },
+  { nadpis: "Úkoly", barva: "bg-red-500", polozky: [{ href: "/terminy", text: "Úkoly a termíny" }] },
   { nadpis: "Finance", barva: "bg-emerald-500", polozky: [
     { href: "/finance", text: "Přehled" }, { href: "/finance/dluznici", text: "Dlužníci" },
-    { href: "/finance/platby", text: "Platby" }, { href: "/finance/naklady", text: "Náklady" },
+    { href: "/finance/platby", text: "Platby" }, { href: "/finance/naklady", text: "Náklady" }, { href: "/finance/kauce", text: "Kauce" },
   ] },
   { nadpis: "Systém", barva: "bg-slate-400", polozky: [
-    { href: "/nastaveni/uzivatele", text: "Uživatelé" }, { href: "/nastaveni/schvaleni", text: "Ke schválení" }, { href: "/napoveda", text: "Nápověda" },
+    { href: "/nastaveni/uzivatele", text: "Uživatelé" }, { href: "/nastaveni/schvaleni", text: "Ke schválení" }, { href: "/nastaveni/log", text: "Log změn" }, { href: "/napoveda", text: "Nápověda" },
   ] },
   { nadpis: "Připravujeme", pripravujeme: true, polozky: [
-    { href: "#", text: "Revize a termíny" }, { href: "#", text: "Údržba" },
+    { href: "#", text: "Údržba" },
   ] },
 ];
 

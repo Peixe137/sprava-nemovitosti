@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
-import { korun, datum, dnesIso, zaDni } from "@/lib/format";
+import { korun, datum, dnesIso, zaDni, PRIORITY } from "@/lib/format";
 
 type Upozorneni = { text: string; href: string; ton: "cervena" | "oranzova" | "modra" };
 const TON = {
@@ -12,14 +12,20 @@ const TON = {
 export default async function Prehled() {
   const supabase = await supabaseServer();
   const dnes = dnesIso();
-  const [dluhy, nemovitosti, smlouvy, terminy, org, zadosti] = await Promise.all([
+  const [dluhy, nemovitosti, smlouvy, terminyV, org, zadosti, otevreneUkoly] = await Promise.all([
     supabase.from("v_dluznici").select("smlouva_id, najemnik, nemovitost, dluh, dni_po_splatnosti"),
     supabase.from("nemovitost").select("id, nadrazena_id, typ_kod, nazev, stav, vyuziti").is("archivovano_dne", null),
     supabase.from("najemni_smlouva").select("id, nemovitost_id, datum_od, datum_do, variabilni_symbol, stav").eq("stav", "aktivni"),
     supabase.from("v_terminy").select("*").order("datum").limit(10),
     supabase.from("organizace").select("nazev").limit(1).maybeSingle(),
     supabase.from("zadost_smazani").select("id", { count: "exact", head: true }).eq("stav", "navrh"),
+    supabase.from("termin").select("id, nazev, datum, priorita, druh, nemovitost_id").eq("splneno", false),
   ]);
+  // termíny: z přehledu blížících se + všechny urgentní úkoly; barva podle důležitosti
+  const priority = new Map((otevreneUkoly.data ?? []).map((t) => [t.id, t.priorita as string]));
+  const terminyVse = [...(terminyV.data ?? []), ...(otevreneUkoly.data ?? []).filter((t) => t.priorita === "urgentni" && !(terminyV.data ?? []).some((v) => v.id === t.id)).map((t) => ({ ...t, zdroj: "termin" }))]
+    .sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
+  const terminy = { data: terminyVse.slice(0, 10) };
 
   // dlužníci po smlouvách
   const poSmlouve = new Map<string, { smlouva_id: string; najemnik: string | null; nemovitost: string; dluh: number; dni: number }>();
@@ -121,11 +127,11 @@ export default async function Prehled() {
         </section>
 
         <section id="terminy" className="karta">
-          <h2 className="mb-3 font-semibold">Termíny a revize</h2>
+          <div className="mb-3 flex items-baseline justify-between"><h2 className="font-semibold">Úkoly a termíny</h2><Link href="/terminy" className="text-sm odkaz">Vše</Link></div>
           {(terminy.data ?? []).length === 0 ? <p className="text-sm text-slate-500">Žádné blížící se termíny.</p> : (
             <ul className="space-y-2 text-sm">{(terminy.data ?? []).map((t) => (
               <li key={t.zdroj + t.id} className="flex justify-between gap-2">
-                <span>{t.nazev}</span>
+                <span className="flex items-center gap-2"><i className={`inline-block h-2 w-2 shrink-0 rounded-full ${PRIORITY[priority.get(t.id) ?? ""]?.tecka ?? "bg-blue-300"}`} />{t.nazev}</span>
                 <span className={`whitespace-nowrap ${t.datum < dnes ? "font-semibold text-red-700" : "text-slate-600"}`}>{datum(t.datum)}</span>
               </li>))}</ul>
           )}
