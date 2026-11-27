@@ -3,13 +3,14 @@ import type { supabaseServer } from "@/lib/supabase/server";
 type Db = Awaited<ReturnType<typeof supabaseServer>>;
 
 export const ROLE: Record<string, string> = {
-  majitel: "Administrátor", spravce: "Správce", ucetni: "Účetní", host: "Host", vlastnik: "Vlastník (klient)", najemnik: "Nájemník",
+  majitel: "Administrátor", spravce: "Správce", ucetni: "Účetní", host: "Host", udrzbar: "Údržbář", vlastnik: "Vlastník (klient)", najemnik: "Nájemník",
 };
 export const POPIS_ROLE: Record<string, string> = {
   majitel: "vše včetně mazání, uživatelů a schvalování",
   spravce: "zakládá a upravuje, mazání jen navrhuje ke schválení",
   ucetni: "upravuje platby, náklady a vyúčtování, ostatní jen čte",
   host: "jen čtení",
+  udrzbar: "vidí nemovitosti, úkoly a revize; úkoly zakládá a odškrtává",
 };
 
 export async function mojeRole(supabase: Db): Promise<string | null> {

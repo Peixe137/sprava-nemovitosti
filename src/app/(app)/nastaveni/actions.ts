@@ -1,11 +1,12 @@
 "use server";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
 import { mojeRole } from "@/lib/role";
 
 const t = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
-const ROLE_OK = ["majitel", "spravce", "ucetni", "host"];
+const ROLE_OK = ["majitel", "spravce", "ucetni", "host", "udrzbar"];
 
 async function jenAdmin(kam: string) {
   const supabase = await supabaseServer();
@@ -18,12 +19,27 @@ export async function pridatUzivatele(f: FormData) {
   const supabase = await jenAdmin("/nastaveni/uzivatele");
   const email = t(f, "email"), role = t(f, "role") ?? "host";
   if (!email || !ROLE_OK.includes(role)) redirect("/nastaveni/uzivatele?chyba=" + encodeURIComponent("Vyplňte e-mail a roli."));
-  const { data, error } = await supabase.rpc("pridat_clena", { p_email: email, p_role: role });
-  if (error) redirect("/nastaveni/uzivatele?chyba=" + encodeURIComponent(error.message));
-  if (data === "neexistuje") redirect("/nastaveni/uzivatele?chyba=" + encodeURIComponent(
-    `${email} ještě nemá účet. Pozvěte ho v Supabase (Authentication → Users → Invite user), po přijetí pozvánky ho sem přidejte.`));
+  const h = await headers();
+  const zaklad = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  const { data, error } = await supabase.functions.invoke("pozvat-uzivatele", {
+    body: { email, role, jmeno: t(f, "jmeno"), telefon: t(f, "telefon"), presmerovat: `${zaklad}/heslo` },
+  });
+  if (error) {
+    let text = error.message;
+    try { text = (await (error as { context?: Response }).context?.json())?.chyba ?? text; } catch {}
+    redirect("/nastaveni/uzivatele?chyba=" + encodeURIComponent(text));
+  }
   revalidatePath("/nastaveni/uzivatele");
-  redirect("/nastaveni/uzivatele?zprava=" + encodeURIComponent(`${email} přidán.`));
+  redirect("/nastaveni/uzivatele?zprava=" + encodeURIComponent((data as { pozvan?: boolean })?.pozvan
+    ? `Pozvánka odeslána na ${email}. Po kliknutí na odkaz si nastaví heslo.` : `${email} už účet měl – byl přidán s rolí.`));
+}
+
+export async function upravitUzivatele(userId: string, f: FormData) {
+  const supabase = await jenAdmin("/nastaveni/uzivatele");
+  const { error } = await supabase.rpc("upravit_clena", { p_user: userId, p_jmeno: t(f, "jmeno") ?? "", p_telefon: t(f, "telefon") ?? "" });
+  if (error) redirect("/nastaveni/uzivatele?chyba=" + encodeURIComponent(error.message));
+  revalidatePath("/nastaveni/uzivatele");
+  redirect("/nastaveni/uzivatele");
 }
 
 export async function zmenitRoli(userId: string, f: FormData) {

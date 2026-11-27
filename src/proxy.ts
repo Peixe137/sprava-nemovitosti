@@ -22,9 +22,11 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const prihlasen = !!data?.claims;
-  const naPrihlaseni = request.nextUrl.pathname.startsWith("/prihlaseni");
+  const cesta = request.nextUrl.pathname;
+  const naPrihlaseni = cesta.startsWith("/prihlaseni");
+  const verejne = naPrihlaseni || cesta.startsWith("/heslo") || cesta.startsWith("/auth/");
 
-  if (!prihlasen && !naPrihlaseni) {
+  if (!prihlasen && !verejne) {
     return NextResponse.redirect(new URL("/prihlaseni", request.url));
   }
   if (prihlasen && naPrihlaseni) {
