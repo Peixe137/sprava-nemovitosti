@@ -20,7 +20,7 @@ export async function pridatNaklad(f: FormData) {
   let dodavatel = t(f, "dodavatel_id");
   if (t(f, "novy_nazev")) {
     const { data: d, error: ed } = await supabase.from("osoba").insert({
-      druh: t(f, "novy_ico") ? "PO" : "FO", nazev_firmy: t(f, "novy_nazev"), ico: t(f, "novy_ico"), adresa: t(f, "novy_adresa"),
+      druh: t(f, "novy_ico") ? "PO" : "FO", nazev_firmy: t(f, "novy_nazev"), ico: t(f, "novy_ico"), dic: t(f, "novy_dic"), adresa: t(f, "novy_adresa"),
       telefon: t(f, "novy_telefon"), email: t(f, "novy_email"), je_dodavatel: true,
       poznamka: t(f, "novy_obor") ? `Obor: ${t(f, "novy_obor")}` : null,
     }).select("id").single();

@@ -13,9 +13,12 @@ export function FormularOsoby({ akce, v, tlacitko = "Uložit", stitky = [] }: { 
     <form action={akce} className="karta space-y-3 text-sm">
       <div className="grid grid-cols-[1fr_auto] items-end gap-2">
         <label className="block"><span className="stitek">IČO</span><input name="ico" inputMode="numeric" defaultValue={h(v, "ico")} className="pole" /></label>
-        <AresTlacitko mapovani={{ nazev: "nazev_firmy", adresa: "adresa", ico: "ico" }} />
+        <AresTlacitko mapovani={{ nazev: "nazev_firmy", adresa: "adresa", ico: "ico", dic: "dic" }} />
       </div>
-      <label className="block"><span className="stitek">Název firmy</span><input name="nazev_firmy" defaultValue={h(v, "nazev_firmy")} className="pole" /></label>
+      <div className="grid grid-cols-[2fr_1fr] gap-2">
+        <label className="block"><span className="stitek">Název firmy</span><input name="nazev_firmy" defaultValue={h(v, "nazev_firmy")} className="pole" /></label>
+        <label className="block"><span className="stitek">DIČ</span><input name="dic" defaultValue={h(v, "dic")} placeholder="CZ…" className="pole" /></label>
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <label className="block"><span className="stitek">Jméno</span><input name="jmeno" defaultValue={h(v, "jmeno")} className="pole" /></label>
         <label className="block"><span className="stitek">Příjmení</span><input name="prijmeni" defaultValue={h(v, "prijmeni")} className="pole" /></label>

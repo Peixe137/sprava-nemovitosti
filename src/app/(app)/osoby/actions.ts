@@ -11,7 +11,7 @@ const udaje = (f: FormData) => {
   const kategorie = Array.from(new Set(f.getAll("kategorie").map((x) => String(x).trim()).filter(Boolean)));
   const druh = t(f, "druh") ?? (t(f, "nazev_firmy") ? "PO" : "FO");
   return {
-    druh, jmeno: t(f, "jmeno"), prijmeni: t(f, "prijmeni"), nazev_firmy: t(f, "nazev_firmy"), ico: t(f, "ico"),
+    druh, jmeno: t(f, "jmeno"), prijmeni: t(f, "prijmeni"), nazev_firmy: t(f, "nazev_firmy"), ico: t(f, "ico"), dic: t(f, "dic"),
     email: t(f, "email"), telefon: t(f, "telefon"), whatsapp: t(f, "whatsapp"), adresa: t(f, "adresa"), web: t(f, "web"),
     funkce: t(f, "funkce"), poznamka: t(f, "poznamka"), kategorie,
     je_dodavatel: kategorie.some((k) => STITKY_DODAVATELE.includes(k)),

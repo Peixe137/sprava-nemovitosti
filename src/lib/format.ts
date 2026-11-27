@@ -53,3 +53,9 @@ export const PLATFORMY: Record<string, { text: string; barva: string; svetla: st
 export const STITKY_OSOB = ["Řemeslník", "Dodavatel energií", "Dodavatel služeb", "Právník / advokát", "Účetní", "Úřad", "Banka", "Pojišťovna", "Realitní", "Ostatní"];
 /** Štítky, podle kterých je kontakt dodavatelem (nabízí se u nákladů). */
 export const STITKY_DODAVATELE = ["Řemeslník", "Dodavatel energií", "Dodavatel služeb"];
+
+/** Omezení vlastnického práva zapsaná na listu vlastnictví. */
+export const OMEZENI: Record<string, string> = {
+  zastava: "Zástavní právo", exekuce: "Exekuce", vecne_bremeno: "Věcné břemeno",
+  predkupni_pravo: "Předkupní právo", zakaz_zcizeni: "Zákaz zcizení / zatížení", jine: "Jiné omezení",
+};

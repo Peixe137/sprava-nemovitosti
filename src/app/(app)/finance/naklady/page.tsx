@@ -99,10 +99,10 @@ export default async function Naklady({ searchParams }: PageProps<"/finance/nakl
             <div className="mt-3 grid gap-2">
               <div className="grid grid-cols-[1fr_auto] items-end gap-2">
                 <label className="block"><span className="stitek">IČO</span><input name="novy_ico" inputMode="numeric" className="pole" /></label>
-                <AresTlacitko icoPole="novy_ico" mapovani={{ nazev: "novy_nazev", adresa: "novy_adresa" }} />
+                <AresTlacitko icoPole="novy_ico" mapovani={{ nazev: "novy_nazev", adresa: "novy_adresa", dic: "novy_dic" }} />
               </div>
               <label className="block"><span className="stitek">Název / jméno</span><input name="novy_nazev" className="pole" placeholder="vyplněno = použije se místo výběru výše" /></label>
-              <input type="hidden" name="novy_adresa" />
+              <input type="hidden" name="novy_adresa" /><input type="hidden" name="novy_dic" />
               <div className="grid grid-cols-2 gap-2">
                 <input name="novy_telefon" placeholder="Telefon" className="pole" />
                 <input name="novy_email" type="email" placeholder="E-mail" className="pole" />

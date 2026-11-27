@@ -211,3 +211,22 @@ export async function obnovitNemovitost(id: string) {
   revalidatePath("/", "layout");
   redirect(`/nemovitosti/${id}`);
 }
+
+/** Omezení z listu vlastnictví (zástava, exekuce, věcné břemeno…). */
+export async function pridatOmezeni(nemovitostId: string, f: FormData) {
+  const supabase = await supabaseServer();
+  const { error } = await supabase.from("omezeni").insert({
+    nemovitost_id: nemovitostId, druh: t(f, "druh") ?? "jine", popis: t(f, "popis"), opravneny: t(f, "opravneny"), datum: t(f, "datum"),
+  });
+  if (error) redirect(`/nemovitosti/${nemovitostId}?chyba=${encodeURIComponent(error.message)}#omezeni`);
+  revalidatePath(`/nemovitosti/${nemovitostId}`);
+  redirect(`/nemovitosti/${nemovitostId}#omezeni`);
+}
+
+export async function smazatOmezeni(nemovitostId: string, id: string) {
+  const supabase = await supabaseServer();
+  const { error } = await supabase.from("omezeni").delete().eq("id", id);
+  if (error) redirect(`/nemovitosti/${nemovitostId}?chyba=${encodeURIComponent(error.message)}#omezeni`);
+  revalidatePath(`/nemovitosti/${nemovitostId}`);
+  redirect(`/nemovitosti/${nemovitostId}#omezeni`);
+}

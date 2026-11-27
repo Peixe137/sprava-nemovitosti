@@ -63,7 +63,8 @@ export default async function NovaSmlouva({ searchParams }: PageProps<"/smlouvy/
           <Pole name="prijmeni" label="Příjmení" />
           <Pole name="nazev_firmy" label="nebo název firmy" />
           <Pole name="ico" label="IČO (u firmy / podnikatele)" inputMode="numeric" />
-          <div className="self-end"><AresTlacitko mapovani={{ nazev: "nazev_firmy", adresa: "adresa", ico: "ico" }} /></div>
+          <div className="self-end"><AresTlacitko mapovani={{ nazev: "nazev_firmy", adresa: "adresa", ico: "ico", dic: "dic" }} /></div>
+          <Pole name="dic" label="DIČ" placeholder="CZ…" />
           <Pole name="adresa" label="Adresa / sídlo" />
           <Pole name="email" label="E-mail" type="email" />
           <Pole name="telefon" label="Telefon" placeholder="+420…" />

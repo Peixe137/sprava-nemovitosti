@@ -26,7 +26,7 @@ export async function pridatSmlouvu(f: FormData) {
 
   const { data: osoba, error: e1 } = await supabase.from("osoba").insert({
     druh: t(f, "nazev_firmy") ? "PO" : "FO", jmeno: t(f, "jmeno"), prijmeni: t(f, "prijmeni"), nazev_firmy: t(f, "nazev_firmy"),
-    ico: t(f, "ico"), adresa: t(f, "adresa"), email: t(f, "email"), telefon: t(f, "telefon"),
+    ico: t(f, "ico"), dic: t(f, "dic"), adresa: t(f, "adresa"), email: t(f, "email"), telefon: t(f, "telefon"),
     preferovany_kanal: t(f, "preferovany_kanal") ?? "sms",
   }).select("id").single();
   if (e1) chyba("Nájemník: " + e1.message);

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { STAVY_NEMOVITOSTI, VYUZITI, korun, datum, DUVODY_ARCHIVACE } from "@/lib/format";
+import { STAVY_NEMOVITOSTI, VYUZITI, korun, datum, DUVODY_ARCHIVACE, OMEZENI } from "@/lib/format";
 import { budouciNajem, denPred, pronajateIds } from "@/lib/obsazenost";
 import { Chyba, Nadpis } from "@/components/Chyba";
-import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniPolozku } from "../actions";
+import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniPolozku, pridatOmezeni, smazatOmezeni } from "../actions";
 import { Odeslat } from "@/components/Odeslat";
 import { DiskSoubory } from "@/components/DiskSoubory";
 import { diskNapojen, idSlozky } from "@/lib/googleDisk";
@@ -18,12 +18,14 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
     .eq("id", id).maybeSingle();
   if (!x) notFound();
 
-  const [jednotky, vynosnost, katastr] = await Promise.all([
+  const [jednotky, vynosnost, katastr, omezeniDb] = await Promise.all([
     supabase.from("nemovitost").select("id, typ_kod, nazev, stav, vyuziti, archivovano_dne").eq("nadrazena_id", id).order("nazev"),
     supabase.from("v_vynosnost").select("*").eq("nemovitost_id", id).order("rok", { ascending: false }),
     supabase.from("katastralni_polozka").select("*").eq("nemovitost_id", id).order("druh").order("cislo_parcely"),
+    supabase.from("omezeni").select("id, nemovitost_id, druh, popis, opravneny, datum").in("nemovitost_id", [id, ...(x.nadrazena_id ? [x.nadrazena_id] : [])]).order("datum"),
   ]);
   const polozky = katastr.data ?? [];
+  const omezeni = (omezeniDb.data ?? []) as { id: string; nemovitost_id: string; druh: string; popis: string | null; opravneny: string | null; datum: string | null }[];
   const jedn = (jednotky.data ?? []).filter((j) => !j.archivovano_dne);
   // smlouvy budovy i všech jejích jednotek (i archivovaných – kvůli historii)
   const nazvyJednotek = new Map((jednotky.data ?? []).map((j) => [j.id, j.nazev as string]));
@@ -105,6 +107,12 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
       {x.archivovano_dne && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         V archivu od {datum(x.archivovano_dne)} – {DUVODY_ARCHIVACE[x.duvod_archivace ?? "jine"]}. Obnovit jde přes Upravit.</div>}
       {x.upozorneni && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">⚠ {x.upozorneni}</div>}
+      {omezeni.length > 0 && (
+        <a href="#omezeni" className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900 hover:bg-orange-100">
+          <b>Omezení na LV:</b>
+          {omezeni.map((o) => <span key={o.id} className="rounded-full bg-orange-200/70 px-2 py-0.5 text-xs">{OMEZENI[o.druh]}{o.opravneny ? ` – ${o.opravneny}` : ""}{o.nemovitost_id !== id ? " (budova)" : ""}</span>)}
+        </a>
+      )}
       <Nadpis titulek={x.nazev}
         podtitulek={x.nadrazena ? `Součást: ${x.nadrazena.nazev}` : undefined}
         akce={<div className="flex flex-wrap gap-2">
@@ -213,6 +221,35 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
                 </div>
               </form>
             </details>
+
+            <div id="omezeni" className="mt-5">
+              <h3 className="mb-2 text-sm font-semibold">Omezení vlastnického práva (část C listu vlastnictví)</h3>
+              {omezeni.length === 0 ? <p className="mb-3 text-sm text-slate-500">Bez zapsaných omezení.</p> : (
+                <ul className="mb-3 space-y-2 text-sm">
+                  {omezeni.map((o) => (
+                    <li key={o.id} className="flex items-start justify-between gap-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2">
+                      <div>
+                        <span className="mr-2 rounded-full bg-orange-500 px-2 py-0.5 text-xs font-medium text-white">{OMEZENI[o.druh]}</span>
+                        {o.opravneny && <b>{o.opravneny}</b>}{o.datum && <span className="text-xs text-slate-500"> · {datum(o.datum)}</span>}
+                        {o.nemovitost_id !== id && <span className="text-xs text-slate-500"> · zapsáno u budovy</span>}
+                        {o.popis && <div className="mt-1 whitespace-pre-line text-slate-700">{o.popis}</div>}
+                      </div>
+                      {o.nemovitost_id === id && <form action={smazatOmezeni.bind(null, id, o.id)}><button className="text-xs text-slate-400 hover:text-red-700">odebrat</button></form>}
+                    </li>))}
+                </ul>
+              )}
+              <details className="rounded-lg border border-slate-200 p-3">
+                <summary className="cursor-pointer text-sm font-medium">+ Přidat omezení (zástava, exekuce, věcné břemeno…)</summary>
+                <form action={pridatOmezeni.bind(null, id)} className="mt-3 grid gap-3 sm:grid-cols-4">
+                  <label className="block"><span className="stitek">Druh</span>
+                    <select name="druh" className="pole">{Object.entries(OMEZENI).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+                  <label className="block sm:col-span-2"><span className="stitek">U koho / oprávněný</span><input name="opravneny" placeholder="např. Česká spořitelna, a.s." className="pole" /></label>
+                  <label className="block"><span className="stitek">Datum vzniku</span><input type="date" name="datum" className="pole" /></label>
+                  <label className="block sm:col-span-3"><span className="stitek">Popis (včetně částky, jak je na LV)</span><textarea name="popis" rows={2} className="pole" placeholder="Zástavní právo smluvní k zajištění pohledávky 3 500 000 Kč…" /></label>
+                  <div className="flex items-end"><Odeslat className="justify-center">Přidat</Odeslat></div>
+                </form>
+              </details>
+            </div>
           </section>
 
           <section className="karta text-sm">
