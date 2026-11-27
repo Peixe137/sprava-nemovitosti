@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Nadpis } from "@/components/Chyba";
 import { PLATFORMY, korun, datum } from "@/lib/format";
+import { Castka } from "@/components/Castka";
 
 type Rez = {
   id: string; nemovitost_id: string; platforma: string; host: string | null; prijezd: string; odjezd: string; noci: number;
@@ -126,8 +127,8 @@ export default async function Kratkodobe({ searchParams }: PageProps<"/kratkodob
                     <div className="text-xs text-slate-500">{r.noci} nocí{r.pocet_hostu ? ` · ${r.pocet_hostu} os.` : ""}</div></td>
                   <td>{r.host ?? "–"}<div><span className={`rounded px-1.5 text-[10px] ${PLATFORMY[r.platforma]?.svetla}`}>{PLATFORMY[r.platforma]?.text}</span></div></td>
                   <td className="text-sm">{(nem.data ?? []).find((n) => n.id === r.nemovitost_id)?.nazev ?? "–"}</td>
-                  <td className="text-right">{korun(r.cena_ubytovani)}{r.noci && r.cena_ubytovani ? <div className="text-xs text-slate-500">{korun(Number(r.cena_ubytovani) / r.noci)}/noc</div> : null}</td>
-                  <td className="text-right font-medium plus">{korun(r.vyplata)}<div className="text-xs font-normal text-slate-500">{r.datum_vyplaty ? datum(r.datum_vyplaty) : "nevyplaceno"}</div></td>
+                  <td className="text-right"><Castka v={r.cena_ubytovani} />{r.noci && r.cena_ubytovani ? <div className="text-xs text-slate-500"><Castka v={Number(r.cena_ubytovani) / r.noci} />/noc</div> : null}</td>
+                  <td className="text-right font-medium plus"><Castka v={r.vyplata} /><div className="text-xs font-normal text-slate-500">{r.datum_vyplaty ? datum(r.datum_vyplaty) : "nevyplaceno"}</div></td>
                 </tr>))}
               </tbody>
             </table>
@@ -138,7 +139,7 @@ export default async function Kratkodobe({ searchParams }: PageProps<"/kratkodob
           <p className="mb-3 text-xs text-slate-500">Podle data příjezdu, po obcích – podklad pro čtvrtletní hlášení a odvod.</p>
           {poplatekQ.size === 0 ? <p className="text-sm text-slate-500">V tomto čtvrtletí nic.</p> : (
             <ul className="space-y-2 text-sm">{[...poplatekQ.entries()].map(([obec, x]) => (
-              <li key={obec} className="flex justify-between"><span>{obec}<span className="ml-1 text-xs text-slate-500">{x.noci} nocí</span></span><span className="font-medium">{korun(x.castka)}</span></li>
+              <li key={obec} className="flex justify-between"><span>{obec}<span className="ml-1 text-xs text-slate-500">{x.noci} nocí</span></span><span className="font-medium"><Castka v={x.castka} /></span></li>
             ))}</ul>
           )}
         </section>

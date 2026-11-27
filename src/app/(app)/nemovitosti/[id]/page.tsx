@@ -8,6 +8,7 @@ import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniP
 import { Odeslat } from "@/components/Odeslat";
 import { DiskSoubory } from "@/components/DiskSoubory";
 import { diskNapojen, idSlozky } from "@/lib/googleDisk";
+import { Castka } from "@/components/Castka";
 
 export default async function DetailNemovitosti({ params, searchParams }: PageProps<"/nemovitosti/[id]">) {
   const { id } = await params;
@@ -288,9 +289,9 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
             <table className="tabulka">
               <thead><tr><th>Rok</th><th className="text-right">Předepsáno</th><th className="text-right">Vybráno</th><th className="text-right">Ostatní příjmy</th><th className="text-right">Náklady</th><th className="text-right">Čistý výnos</th><th className="text-right">% z pořízení</th><th className="text-right">% z tržní hodnoty</th></tr></thead>
               <tbody>{roky.map((v) => (
-                <tr key={v.rok}><td>{v.rok}</td><td className="text-right">{korun(v.predepsano)}</td><td className="text-right plus">{korun(v.vybrano)}</td>
+                <tr key={v.rok}><td>{v.rok}</td><td className="text-right"><Castka v={v.predepsano} /></td><td className="text-right plus"><Castka v={v.vybrano} /></td>
                   <td className="text-right">{v.ostatni ? korun(v.ostatni) : "–"}</td><td className="text-right minus">{v.naklady ? korun(-v.naklady) : "–"}</td>
-                  <td className={`text-right font-medium ${v.vynos >= 0 ? "plus" : "minus"}`}>{korun(v.vynos)}</td>
+                  <td className={`text-right font-medium ${v.vynos >= 0 ? "plus" : "minus"}`}><Castka v={v.vynos} /></td>
                   <td className="text-right">{zakladCena ? `${(v.vynos / zakladCena * 100).toFixed(1)} %` : "–"}</td>
                   <td className="text-right">{x.trzni_hodnota ? `${(v.vynos / Number(x.trzni_hodnota) * 100).toFixed(1)} %` : "–"}</td></tr>))}
               </tbody>

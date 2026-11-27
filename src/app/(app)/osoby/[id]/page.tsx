@@ -6,6 +6,7 @@ import { Odeslat } from "@/components/Odeslat";
 import { FormularOsoby } from "@/components/FormularOsoby";
 import { korun, datum } from "@/lib/format";
 import { upravitOsobu, pridatKontaktFirmy, smazatOsobu } from "../actions";
+import { Castka } from "@/components/Castka";
 
 export default async function Osoba({ params, searchParams }: PageProps<"/osoby/[id]">) {
   const { id } = await params;
@@ -74,7 +75,7 @@ export default async function Osoba({ params, searchParams }: PageProps<"/osoby/
             <section className="karta text-sm">
               <h2 className="mb-3 font-semibold">Poslední náklady u tohoto dodavatele</h2>
               <ul className="space-y-1">{nakl.map((x) => (
-                <li key={x.id} className="flex justify-between gap-2"><span>{datum(x.datum)} · {x.nemovitost?.nazev}</span><span className="minus">{korun(-x.castka_celkem)}</span></li>))}
+                <li key={x.id} className="flex justify-between gap-2"><span>{datum(x.datum)} · {x.nemovitost?.nazev}</span><span className="minus"><Castka v={-x.castka_celkem} /></span></li>))}
               </ul>
             </section>)}
           <form action={smazatOsobu.bind(null, id, "/osoby")} className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm">

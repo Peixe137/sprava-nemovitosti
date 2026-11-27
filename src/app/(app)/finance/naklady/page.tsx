@@ -7,6 +7,7 @@ import { Odeslat } from "@/components/Odeslat";
 import { KATEGORIE_NAKLADU, korun, datum, dnesIso } from "@/lib/format";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatNaklad } from "../actions";
+import { Castka } from "@/components/Castka";
 
 const SLUZBY: Record<string, string> = {
   voda: "Voda", teplo: "Teplo", tuv: "Teplá voda", elektrina_spol: "Elektřina spol. prostor", plyn: "Plyn",
@@ -62,8 +63,8 @@ export default async function Naklady({ searchParams }: PageProps<"/finance/nakl
                     <td>{KATEGORIE_NAKLADU[r.kategorie] ?? r.kategorie}
                       {r.sluzba_vyuctovani && <div className="text-xs text-blue-700">přeúčtovat: {SLUZBY[r.sluzba_vyuctovani]}</div>}</td>
                     <td>{r.poznamka ?? "–"}{r.dodavatel && <div className="text-xs text-slate-500">{r.dodavatel.nazev_firmy ?? r.dodavatel.prijmeni}</div>}</td>
-                    <td className="text-right">{korun(r.castka_bez_dph)}</td>
-                    <td className="text-right font-medium">{korun(r.castka_celkem)}</td>
+                    <td className="text-right"><Castka v={r.castka_bez_dph} /></td>
+                    <td className="text-right font-medium"><Castka v={r.castka_celkem} /></td>
                   </tr>))}
                 </tbody>
               </table>

@@ -1,5 +1,11 @@
-const kc = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 });
-export const korun = (v: number | string | null | undefined) => (v == null || v === "" ? "–" : kc.format(Number(v)));
+const kc = new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** Účetní formát: 1 000 000,15 Kč, záporné s minusem (-1 000,00 Kč). Mezery jsou nezlomitelné. */
+export const korun = (v: number | string | null | undefined) => {
+  if (v == null || v === "") return "–";
+  const n = Math.round(Number(v) * 100) / 100;
+  if (!Number.isFinite(n)) return "–";
+  return `${n < 0 ? "-" : ""}${kc.format(Math.abs(n)).replace(/\s/g, "\u00a0")}\u00a0Kč`;
+};
 export const datum = (v: string | null | undefined) =>
   v ? new Date(v + (v.length === 10 ? "T00:00:00" : "")).toLocaleDateString("cs-CZ") : "–";
 export const mesic = (v: string | null | undefined) =>

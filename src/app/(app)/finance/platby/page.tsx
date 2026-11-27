@@ -5,6 +5,7 @@ import { Chyba, Nadpis } from "@/components/Chyba";
 import { Odeslat } from "@/components/Odeslat";
 import { BANKY } from "@/lib/vypisy";
 import { nahratVypis, priraditPohyb, ignorovatPohyb } from "./actions";
+import { Castka } from "@/components/Castka";
 
 const STAV: Record<string, [string, string]> = {
   sparovano: ["Spárováno", "bg-green-50 text-green-800"],
@@ -95,7 +96,7 @@ export default async function Platby({ searchParams }: PageProps<"/finance/platb
                   <td>{r.protiucet_nazev ?? "–"}<div className="text-xs text-slate-500">{r.protiucet ? `${r.protiucet}/${r.protiucet_banka}` : ""}</div></td>
                   <td>{r.vs ?? "–"}</td>
                   <td className="max-w-xs truncate">{r.zprava ?? ""}</td>
-                  <td className={`text-right font-medium ${Number(r.castka) < 0 ? "minus" : "plus"}`}>{korun(r.castka)}</td>
+                  <td className={`text-right font-medium ${Number(r.castka) < 0 ? "minus" : "plus"}`}><Castka v={r.castka} /></td>
                   <td>{Number(r.castka) > 0 && <span className={`rounded-full px-2 py-0.5 text-xs ${barva}`}>{text}</span>}
                     {Number(r.castka) > 0 && r.stav_parovani === "nesparovano" && (
                       <details className="mt-1 text-xs">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { korun, datum, dnesIso, zaDni, PRIORITY } from "@/lib/format";
+import { Castka } from "@/components/Castka";
 
 type Upozorneni = { text: string; href: string; ton: "cervena" | "oranzova" | "modra" };
 const TON = {
@@ -100,7 +101,7 @@ export default async function Prehled() {
         </Link>
         <Link href="/finance/dluznici" className={`${dluhCelkem ? "dlazdice-cervena hover:border-rose-300" : "dlazdice-zelena hover:border-emerald-300"}`}>
           <div className="stitek">Dluží celkem</div>
-          <div className={`text-2xl font-semibold ${dluhCelkem ? "minus" : "plus"}`}>{korun(dluhCelkem)}</div>
+          <div className={`text-2xl font-semibold ${dluhCelkem ? "minus" : "plus"}`}><Castka v={dluhCelkem} /></div>
           <div className="text-xs text-slate-500">{kriticti} déle než 90 dní</div>
         </Link>
         <div className="dlazdice-oranzova">
@@ -121,7 +122,7 @@ export default async function Prehled() {
               <li key={d.smlouva_id} className="flex items-start justify-between gap-2">
                 <div><Link href={`/smlouvy/${d.smlouva_id}`} className="odkaz">{d.najemnik ?? "–"}</Link>
                   <div className="text-xs text-slate-500">{d.nemovitost} · {d.dni} dní po splatnosti</div></div>
-                <span className="font-semibold whitespace-nowrap text-red-700">{korun(d.dluh)}</span>
+                <span className="font-semibold whitespace-nowrap text-red-700"><Castka v={d.dluh} /></span>
               </li>))}</ul>
           )}
         </section>

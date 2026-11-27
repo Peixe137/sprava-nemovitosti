@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { korun, datum, mesic } from "@/lib/format";
 import { Nadpis } from "@/components/Chyba";
+import { Castka } from "@/components/Castka";
 
 const PASMA = [
   { klic: "0-30", text: "0–30 dní", od: 1, do: 30, barva: "bg-amber-50 text-amber-800 border-amber-200" },
@@ -37,7 +38,7 @@ export default async function Dluznici({ searchParams }: PageProps<"/finance/dlu
       <div className="mb-6 grid gap-3 sm:grid-cols-5">
         <Link href="/finance/dluznici" className={`karta ${!vybrane ? "ring-2 ring-slate-900" : ""}`}>
           <div className="stitek">Celkem</div>
-          <div className="text-xl font-semibold">{korun(celkem)}</div>
+          <div className="text-xl font-semibold"><Castka v={celkem} /></div>
           <div className="text-xs text-slate-500">{dluznici.length} dlužníků</div>
         </Link>
         {PASMA.map((p) => {
@@ -46,7 +47,7 @@ export default async function Dluznici({ searchParams }: PageProps<"/finance/dlu
             <Link key={p.klic} href={`/finance/dluznici?pasmo=${p.klic}`}
               className={`rounded-xl border p-5 ${p.barva} ${vybrane?.klic === p.klic ? "ring-2 ring-slate-900" : ""}`}>
               <div className="mb-1 text-xs font-medium tracking-wide uppercase opacity-80">{p.text}</div>
-              <div className="text-xl font-semibold">{korun(v.reduce((s, d) => s + d.dluh, 0))}</div>
+              <div className="text-xl font-semibold"><Castka v={v.reduce((s, d) => s + d.dluh, 0)} /></div>
               <div className="text-xs opacity-80">{v.length} dlužníků</div>
             </Link>
           );
@@ -68,7 +69,7 @@ export default async function Dluznici({ searchParams }: PageProps<"/finance/dlu
                   <td>{d.vlastnik}</td>
                   <td>{mesic(d.obdobi)} <span className="text-xs text-slate-500">(spl. {datum(d.splatnost)})</span></td>
                   <td className="text-right">{d.mesicu}</td>
-                  <td className="text-right font-semibold text-red-700">{korun(d.dluh)}</td>
+                  <td className="text-right font-semibold text-red-700"><Castka v={d.dluh} /></td>
                   <td className={`text-right ${d.nejstarsi > 90 ? "font-semibold text-red-700" : ""}`}>{d.nejstarsi}</td>
                 </tr>
               ))}

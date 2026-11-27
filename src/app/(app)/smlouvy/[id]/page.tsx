@@ -5,6 +5,7 @@ import { DRUHY_PREDPISU, STAVY_POHLEDAVKY, PERIODY, korun, datum, mesic } from "
 import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { doplnitPredpisy, prepocitatPlatby, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt, upravitPodminky, vratitKauci } from "../actions";
+import { Castka } from "@/components/Castka";
 
 export default async function DetailSmlouvy({ params, searchParams }: PageProps<"/smlouvy/[id]">) {
   const { id } = await params;
@@ -79,7 +80,7 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
               <div><dt className="stitek">Období</dt><dd>{datum(s.datum_od)} – {s.datum_do ? datum(s.datum_do) : "doba neurčitá"}</dd></div>
               <div><dt className="stitek">Splatnost</dt><dd>{s.den_splatnosti}. den v měsíci{s.splatnost_predem ? " (předem)" : ""}</dd></div>
               <div><dt className="stitek">Kauce</dt><dd>{Number(s.kauce_castka) > 0 ? (<>
-                {korun(s.kauce_castka)}{" "}
+                <Castka v={s.kauce_castka} />{" "}
                 {s.kauce_vracena_dne ? <span className="text-xs text-slate-500">· vrácena {datum(s.kauce_vracena_dne)}</span>
                   : s.kauce_prijata_dne ? <span className="text-xs plus">· složena {datum(s.kauce_prijata_dne)}</span>
                   : <span className="text-xs text-amber-700">· čeká na zaplacení (v Platbách)</span>}
@@ -114,7 +115,7 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
                   <li key={p.id} className={`py-2 ${skoncila ? "text-slate-400" : ""}`}>
                     <div className="flex justify-between gap-2">
                       <span>{DRUHY_PREDPISU[p.druh] ?? p.druh}{p.popis ? ` – ${p.popis}` : ""}</span>
-                      <span className="whitespace-nowrap">{korun(p.castka)} <span className="text-xs text-slate-500">{PERIODY[p.perioda] ?? ""}</span></span>
+                      <span className="whitespace-nowrap"><Castka v={p.castka} /> <span className="text-xs text-slate-500">{PERIODY[p.perioda] ?? ""}</span></span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-500">
                       <span>od {datum(p.platnost_od)}{p.platnost_do ? ` do ${datum(p.platnost_do)}` : ""}</span>
@@ -148,7 +149,7 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
         <section className="karta overflow-x-auto lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Platby</h2>
-            {dluh > 0 && <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-700">Dluh {korun(dluh)}</span>}
+            {dluh > 0 && <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-700">Dluh <Castka v={dluh} /></span>}
           </div>
           {(pohledavky.data ?? []).length === 0 ? <p className="text-sm text-slate-500">Zatím žádné platby.</p> : (
             <table className="tabulka">
@@ -160,8 +161,8 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
                   <tr key={p.id}>
                     <td>{p.druh === "kauce" ? <b>Kauce</b> : mesic(p.obdobi)}</td>
                     <td className={poSplatnosti ? "font-medium text-red-700" : ""}>{datum(p.splatnost)}</td>
-                    <td className="text-right">{korun(p.castka)}</td>
-                    <td className="text-right">{korun(p.uhrazeno)}</td>
+                    <td className="text-right"><Castka v={p.castka} /></td>
+                    <td className="text-right"><Castka v={p.uhrazeno} /></td>
                     <td>{STAVY_POHLEDAVKY[p.stav]}</td>
                     <td className="text-right">
                       {zbyva > 0 && (

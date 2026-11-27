@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Nadpis } from "@/components/Chyba";
 import { korun, datum } from "@/lib/format";
+import { Castka } from "@/components/Castka";
 
 type Radek = {
   id: string; variabilni_symbol: string; kauce_castka: number; kauce_prijata_dne: string | null; kauce_vracena_dne: string | null; stav: string;
@@ -29,9 +30,9 @@ export default async function Kauce() {
     <>
       <Nadpis titulek="Kauce" podtitulek="Složené jistoty nájemníků – kolik držíme, co ještě nepřišlo a co se vrátilo" />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <div className="dlazdice-zelena"><div className="stitek">Složené kauce celkem</div><div className="text-2xl font-semibold plus">{korun(drzime)}</div><div className="text-xs text-slate-500">drží se u nás, k vrácení po skončení nájmu</div></div>
-        <div className={cekame > 0 ? "dlazdice-oranzova" : "dlazdice-zelena"}><div className="stitek">Čeká na zaplacení</div><div className={`text-2xl font-semibold ${cekame > 0 ? "text-amber-700" : "plus"}`}>{korun(cekame)}</div><div className="text-xs text-slate-500">kauce ze smluv, které ještě nepřišly</div></div>
-        <div className="dlazdice-zelena"><div className="stitek">Vráceno</div><div className="text-2xl font-semibold">{korun(vraceno)}</div><div className="text-xs text-slate-500">po skončených nájmech</div></div>
+        <div className="dlazdice-zelena"><div className="stitek">Složené kauce celkem</div><div className="text-2xl font-semibold plus"><Castka v={drzime} /></div><div className="text-xs text-slate-500">drží se u nás, k vrácení po skončení nájmu</div></div>
+        <div className={cekame > 0 ? "dlazdice-oranzova" : "dlazdice-zelena"}><div className="stitek">Čeká na zaplacení</div><div className={`text-2xl font-semibold ${cekame > 0 ? "text-amber-700" : "plus"}`}><Castka v={cekame} /></div><div className="text-xs text-slate-500">kauce ze smluv, které ještě nepřišly</div></div>
+        <div className="dlazdice-zelena"><div className="stitek">Vráceno</div><div className="text-2xl font-semibold"><Castka v={vraceno} /></div><div className="text-xs text-slate-500">po skončených nájmech</div></div>
       </div>
       <section className="karta overflow-x-auto">
         {radky.length === 0 ? <p className="text-sm text-slate-500">Žádná smlouva zatím nemá kauci. Výši kauce zadáte ve smlouvě (Podmínky → Upravit podmínky).</p> : (
@@ -41,7 +42,7 @@ export default async function Kauce() {
               <tr key={r.id}>
                 <td><Link href={`/smlouvy/${r.id}`} className="odkaz">{r.najemce || `VS ${r.variabilni_symbol}`}</Link></td>
                 <td>{r.nemovitost?.nazev}</td>
-                <td className="text-right">{korun(r.kauce_castka)}</td>
+                <td className="text-right"><Castka v={r.kauce_castka} /></td>
                 <td className="text-right plus">{r.slozeno ? korun(r.slozeno) : "–"}</td>
                 <td>{r.kauce_vracena_dne ? <span className="text-slate-500">vrácena {datum(r.kauce_vracena_dne)}</span>
                   : r.slozeno >= Number(r.kauce_castka) ? <span className="plus">složena{r.kauce_prijata_dne ? ` ${datum(r.kauce_prijata_dne)}` : ""}</span>

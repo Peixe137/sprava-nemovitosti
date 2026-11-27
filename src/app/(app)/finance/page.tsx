@@ -4,6 +4,7 @@ import { KATEGORIE_NAKLADU, MESICE, korun } from "@/lib/format";
 import { Nadpis } from "@/components/Chyba";
 import { HledatNemovitost } from "@/components/HledatNemovitost";
 import { moznostiNemovitosti } from "@/lib/vyberNemovitosti";
+import { Castka } from "@/components/Castka";
 
 type Cleneni = "mesic" | "ctvrtleti" | "rok";
 const CLENENI: Record<Cleneni, string> = { mesic: "Měsíčně", ctvrtleti: "Čtvrtletně", rok: "Ročně" };
@@ -184,7 +185,7 @@ export default async function FinancePrehled({ searchParams }: PageProps<"/finan
             <ul className="space-y-3 text-sm">
               {strukturaRazena.map(([k, val], i) => (
                 <li key={k}>
-                  <div className="mb-1 flex justify-between"><span>{KATEGORIE_NAKLADU[k] ?? k}</span><span className="font-medium minus">{korun(-val)}</span></div>
+                  <div className="mb-1 flex justify-between"><span>{KATEGORIE_NAKLADU[k] ?? k}</span><span className="font-medium minus"><Castka v={-val} /></span></div>
                   <div className="h-1.5 rounded-full bg-slate-100"><div className={`h-1.5 rounded-full ${BARVY[i % BARVY.length]}`} style={{ width: `${(val / naklady) * 100}%` }} /></div>
                 </li>
               ))}
@@ -209,17 +210,17 @@ export default async function FinancePrehled({ searchParams }: PageProps<"/finan
                     <td className="text-right">{x.ostatni ? korun(x.ostatni) : "–"}</td>
                     <td className="text-right minus">{x.naklady ? korun(-x.naklady) : "–"}</td>
                     <td className={`text-right font-medium ${vys >= 0 ? "plus" : "minus"}`}>{prazdny ? "–" : korun(vys)}</td>
-                    <td className={`text-right ${kumul >= 0 ? "plus" : "minus"}`}>{korun(kumul)}</td>
+                    <td className={`text-right ${kumul >= 0 ? "plus" : "minus"}`}><Castka v={kumul} /></td>
                   </tr>
                 );
               })}
               <tr className="border-t-2 border-slate-300 font-semibold">
                 <td>Celkem {obdobiText.replace("celkem ", "")}</td>
-                <td className="text-right">{korun(predepsano)}</td>
-                <td className="text-right plus">{korun(vybrano)}</td>
-                <td className="text-right">{korun(ostatni)}</td>
-                <td className="text-right minus">{korun(-naklady)}</td>
-                <td className={`text-right ${prijmy - naklady >= 0 ? "plus" : "minus"}`}>{korun(prijmy - naklady)}</td>
+                <td className="text-right"><Castka v={predepsano} /></td>
+                <td className="text-right plus"><Castka v={vybrano} /></td>
+                <td className="text-right"><Castka v={ostatni} /></td>
+                <td className="text-right minus"><Castka v={-naklady} /></td>
+                <td className={`text-right ${prijmy - naklady >= 0 ? "plus" : "minus"}`}><Castka v={prijmy - naklady} /></td>
                 <td></td>
               </tr>
             </tbody>
