@@ -5,14 +5,11 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Odeslat } from "@/components/Odeslat";
 import { KATEGORIE_NAKLADU, korun, datum, dnesIso } from "@/lib/format";
+import { SLUZBY } from "@/lib/format";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatNaklad } from "../actions";
 import { Castka } from "@/components/Castka";
 
-const SLUZBY: Record<string, string> = {
-  voda: "Voda", teplo: "Teplo", tuv: "Teplá voda", elektrina_spol: "Elektřina spol. prostor", plyn: "Plyn",
-  vytah: "Výtah", uklid: "Úklid", osvetleni: "Osvětlení", odpad: "Odpad", ostatni: "Ostatní služby",
-};
 
 export default async function Naklady({ searchParams }: PageProps<"/finance/naklady">) {
   const { chyba, ulozeno, nemovitost, rok } = await searchParams;

@@ -77,3 +77,24 @@ export const PRIORITY: Record<string, { text: string; tecka: string; radek: stri
   nedulezite: { text: "Nedůležité", tecka: "bg-slate-300", radek: "border-l-4 border-l-slate-300", stitek: "bg-slate-100 text-slate-600" },
 };
 export const OPAKOVANI: Record<string, string> = { zadne: "Neopakuje se", mesicne: "Každý měsíc", rocne: "Každý rok", dvouletne: "Každé 2 roky", petilete: "Každých 5 let" };
+
+/** Služby k přeúčtování (u nákladu) a jejich řádky ve vyúčtování. */
+export const SLUZBY: Record<string, string> = {
+  voda: "Voda (vodné a stočné)", tuv: "Teplá voda", teplo: "Teplo (vytápění)", elektrina: "Elektřina (podružné elektroměry)", plyn: "Plyn",
+  elektrina_spol: "Elektřina společných prostor", vytah: "Výtah", uklid: "Úklid", osvetleni: "Osvětlení", odpad: "Odpad", ostatni: "Ostatní služby",
+};
+
+/** Energie a měřidla */
+export const KOMODITY: Record<string, string> = { elektrina: "Elektřina", plyn: "Plyn", voda: "Voda", teplo: "Teplo" };
+export const DRUHY_MERIDEL: Record<string, string> = {
+  voda_studena: "Vodoměr – studená", voda_tepla: "Vodoměr – teplá", elektrina: "Elektroměr", plyn: "Plynoměr", teplo: "Měřič tepla", rtn: "Rozúčtovač topení",
+};
+export const JEDNOTKY_MERIDEL: Record<string, string> = { voda_studena: "m³", voda_tepla: "m³", elektrina: "kWh", plyn: "m³", teplo: "GJ", rtn: "dílky" };
+export const UCEL_MERIDLA: Record<string, string> = { jednotka: "Jednotka", hlavni: "Hlavní (patní) měřidlo budovy", spolecne: "Společné prostory" };
+export const DRUHY_ODECTU: Record<string, string> = { pocatecni: "Počáteční (převzetí)", pravidelny: "Pravidelný", konecny: "Konečný (předání)", vymena: "Výměna měřidla" };
+/** Která měřidla patří ke službě ve vyúčtování (rozúčtování podle spotřeby). */
+export const MERIDLA_SLUZBY: Record<string, string[]> = {
+  voda: ["voda_studena", "voda_tepla"], tuv: ["voda_tepla"], teplo: ["teplo", "rtn"], elektrina: ["elektrina"], plyn: ["plyn"],
+};
+export const cislo = (v: number | string | null | undefined, des = 3) =>
+  v == null || v === "" ? "–" : Number(v).toLocaleString("cs-CZ", { maximumFractionDigits: des });

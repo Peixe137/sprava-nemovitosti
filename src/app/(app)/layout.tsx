@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b border-slate-200 bg-slate-50/70 md:w-60 md:border-r md:border-b-0">
+      <aside className="border-b border-slate-200 bg-slate-50/70 md:w-60 md:border-r md:border-b-0 print:hidden">
         <div className="p-5">
           <div className="text-lg font-semibold">Správa nemovitostí</div>
           <div className="truncate text-xs text-slate-500">{org?.nazev}</div>
@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <button className="text-sm text-slate-600 hover:underline">Odhlásit se</button>
         </form>
       </aside>
-      <main className="flex-1 p-5 md:p-8">
+      <main className="flex-1 p-5 md:p-8 print:p-0">
         {role === "host" && <p className="mb-4 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">Režim jen pro čtení (role Host).</p>}
         <Suspense><Zprava /></Suspense>
         {children}

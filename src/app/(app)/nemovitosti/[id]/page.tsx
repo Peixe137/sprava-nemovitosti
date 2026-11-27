@@ -7,6 +7,7 @@ import { Chyba, Nadpis } from "@/components/Chyba";
 import { pridatKatastralniPolozku, smazatKatastralniPolozku, upravitKatastralniPolozku, pridatOmezeni, smazatOmezeni } from "../actions";
 import { Odeslat } from "@/components/Odeslat";
 import { DiskSoubory } from "@/components/DiskSoubory";
+import { EnergieSekce } from "@/components/EnergieSekce";
 import { diskNapojen, idSlozky } from "@/lib/googleDisk";
 import { Castka } from "@/components/Castka";
 
@@ -297,6 +298,8 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
               </tbody>
             </table>)}
         </section>
+
+        <EnergieSekce nemovitostId={id} jednotky={jedn.map((j) => ({ id: j.id, nazev: j.nazev }))} />
 
         {slozkaId && (
           <section id="disk" className="karta lg:col-span-3">

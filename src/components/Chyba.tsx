@@ -3,7 +3,7 @@ export function Chyba({ text }: { text?: string | string[] }) {
   return <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{String(text)}</p>;
 }
 
-export function Nadpis({ titulek, podtitulek, akce }: { titulek: string; podtitulek?: string; akce?: React.ReactNode }) {
+export function Nadpis({ titulek, podtitulek, akce }: { titulek: string; podtitulek?: React.ReactNode; akce?: React.ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>

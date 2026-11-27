@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { DRUHY_PREDPISU, STAVY_POHLEDAVKY, PERIODY, korun, datum, mesic } from "@/lib/format";
+import { DRUHY_PREDPISU, STAVY_POHLEDAVKY, PERIODY, datum, mesic } from "@/lib/format";
 import { Odeslat } from "@/components/Odeslat";
 import { Chyba, Nadpis } from "@/components/Chyba";
 import { doplnitPredpisy, prepocitatPlatby, zaplaceno, pridatPolozku, ukoncitPolozku, smazatPolozku, pridatKontakt, odebratKontakt, upravitPodminky, vratitKauci } from "../actions";
@@ -16,9 +16,11 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
     .eq("id", id).maybeSingle();
   if (!s) notFound();
 
-  const [predpis, pohledavky] = await Promise.all([
+  const [predpis, pohledavky, protokoly, vyuctovani] = await Promise.all([
     supabase.from("predpis_polozka").select("*").eq("smlouva_id", id).order("platnost_od"),
     supabase.from("pohledavka").select("*").eq("smlouva_id", id).order("obdobi", { ascending: false }),
+    supabase.from("predavaci_protokol").select("id, druh, datum").eq("smlouva_id", id).order("datum"),
+    supabase.from("vyuctovani").select("id, obdobi_od, obdobi_do, vysledek, stav, lhuta_dorucit").eq("smlouva_id", id).order("obdobi_od", { ascending: false }),
   ]);
   const dnes = new Date().toISOString().slice(0, 10);
   const dluh = (pohledavky.data ?? []).filter((p) => ["otevrena", "castecne"].includes(p.stav) && p.splatnost < dnes)
@@ -159,7 +161,7 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
                 const poSplatnosti = zbyva > 0 && p.splatnost < dnes;
                 return (
                   <tr key={p.id}>
-                    <td>{p.druh === "kauce" ? <b>Kauce</b> : mesic(p.obdobi)}</td>
+                    <td>{p.druh === "kauce" ? <b>Kauce</b> : p.druh === "vyuctovani" ? <b>Vyúčtování služeb</b> : mesic(p.obdobi)}</td>
                     <td className={poSplatnosti ? "font-medium text-red-700" : ""}>{datum(p.splatnost)}</td>
                     <td className="text-right"><Castka v={p.castka} /></td>
                     <td className="text-right"><Castka v={p.uhrazeno} /></td>
@@ -176,6 +178,37 @@ export default async function DetailSmlouvy({ params, searchParams }: PageProps<
             </table>
           )}
           <p className="mt-3 text-xs text-slate-500">Platby se zatím zapisují ručně. Po napojení Fio banky se budou párovat automaticky podle variabilního symbolu.</p>
+        </section>
+
+        <section className="karta text-sm">
+          <h2 className="mb-3 font-semibold">Předávací protokoly</h2>
+          {(protokoly.data ?? []).length === 0 ? <p className="mb-3 text-slate-500">Zatím žádný protokol.</p> : (
+            <ul className="mb-3 space-y-1">{(protokoly.data ?? []).map((p) => (
+              <li key={p.id}><Link href={`/smlouvy/${id}/protokol/${p.id}`} className="odkaz">{p.druh === "prevzeti" ? "Převzetí" : "Předání (vrácení)"} {datum(p.datum)}</Link></li>))}</ul>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/smlouvy/${id}/protokol/novy?druh=prevzeti`} className="tlacitko-svetle">+ Převzetí</Link>
+            <Link href={`/smlouvy/${id}/protokol/novy?druh=predani`} className="tlacitko-svetle">+ Předání (konec nájmu)</Link>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Stavy měřidel z protokolu se uloží jako počáteční / konečné odečty.</p>
+        </section>
+
+        <section className="karta text-sm lg:col-span-2">
+          <h2 className="mb-3 font-semibold">Vyúčtování služeb</h2>
+          {(vyuctovani.data ?? []).length === 0 ? <p className="mb-3 text-slate-500">Zatím žádné vyúčtování.</p> : (
+            <table className="tabulka mb-3">
+              <thead><tr><th>Období</th><th className="text-right">Výsledek</th><th>Stav</th><th>Doručit do</th></tr></thead>
+              <tbody>{(vyuctovani.data ?? []).map((v) => (
+                <tr key={v.id}>
+                  <td><Link href={`/smlouvy/${id}/vyuctovani/${v.id}`} className="odkaz">{datum(v.obdobi_od)} – {datum(v.obdobi_do)}</Link></td>
+                  <td className="text-right">{Number(v.vysledek) > 0 ? "nedoplatek " : Number(v.vysledek) < 0 ? "přeplatek " : ""}<Castka v={Math.abs(Number(v.vysledek))} /></td>
+                  <td>{v.stav === "rozpracovano" ? "rozpracováno" : v.stav === "odeslano" ? "odesláno" : "vyrovnáno"}</td>
+                  <td className={v.stav === "rozpracovano" && v.lhuta_dorucit < dnes ? "font-medium text-red-700" : ""}>{datum(v.lhuta_dorucit)}</td>
+                </tr>))}</tbody>
+            </table>
+          )}
+          <Link href={`/smlouvy/${id}/vyuctovani/nove`} className="tlacitko-svetle">+ Nové vyúčtování</Link>
+          <p className="mt-2 text-xs text-slate-500">Zálohy z plateb, náklady označené k přeúčtování, rozpočítání podle odečtů měřidel nebo plochy. Zákonná lhůta: do 4 měsíců po skončení období.</p>
         </section>
       </div>
     </>

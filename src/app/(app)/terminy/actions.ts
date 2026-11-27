@@ -19,8 +19,10 @@ export async function pridatTermin(f: FormData) {
   const d = udaje(f);
   if (!d.nazev || !d.datum) zpet("Vyplňte název a datum.");
   const supabase = await supabaseServer();
-  const { error } = await supabase.from("termin").insert(d);
-  zpet(error?.message, "Přidáno.");
+  const { data, error } = await supabase.from("termin").insert(d).select("id").single();
+  if (error) zpet(error.message);
+  revalidatePath("/terminy"); revalidatePath("/");
+  redirect(`/terminy?uprav=${data!.id}&zprava=${encodeURIComponent("Přidáno. Fotky nebo dokumenty můžete přiložit níže.")}`);
 }
 
 export async function upravitTermin(id: string, f: FormData) {

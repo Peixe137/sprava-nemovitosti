@@ -6,6 +6,7 @@ import { Odeslat } from "@/components/Odeslat";
 import { HledatNemovitost } from "@/components/HledatNemovitost";
 import { moznostiNemovitosti } from "@/lib/vyberNemovitosti";
 import { DRUHY_TERMINU, PRIORITY, OPAKOVANI, datum } from "@/lib/format";
+import { Prilohy, nactiPrilohy, organizace } from "@/components/Prilohy";
 import { pridatTermin, upravitTermin, splnitTermin, znovuOtevrit, smazatTermin } from "./actions";
 
 type T = { id: string; druh: string; nazev: string; datum: string; priorita: string; popis: string | null; opakovani: string; upozornit_dni: number;
@@ -50,6 +51,8 @@ export default async function Terminy({ searchParams }: PageProps<"/terminy">) {
   const dnes = new Date().toISOString().slice(0, 10);
   const radky = ((data ?? []) as unknown as T[]).filter((r) => !nem || (r.nemovitost_id && ids.has(r.nemovitost_id)))
     .sort((a, b) => zobrazit === "splnene" ? 0 : (Number(b.datum < dnes) - Number(a.datum < dnes)) || (PORADI[a.priorita] - PORADI[b.priorita]) || a.datum.localeCompare(b.datum));
+  const [prilohy, org] = await Promise.all([nactiPrilohy("termin", radky.map((r) => r.id)), organizace()]);
+  const cestaZpet = "/terminy";
   const pocet = (p: string) => radky.filter((r) => r.priorita === p).length;
   const odkaz = (zmena: Record<string, string>) => `/terminy?${new URLSearchParams(Object.entries({ zobrazit, priorita, nemovitost: nem, ...zmena }).filter(([, v]) => v && v !== "otevrene"))}`;
 
@@ -91,18 +94,21 @@ export default async function Terminy({ searchParams }: PageProps<"/terminy">) {
                     </div>
                     {r.nemovitost && <Link href={`/nemovitosti/${r.nemovitost_id}`} className="text-xs odkaz">{r.nemovitost.nazev}</Link>}
                     {r.popis && <div className="mt-1 whitespace-pre-line text-xs text-slate-600">{r.popis}</div>}
+                    {(prilohy.get(r.id)?.length ?? 0) > 0 && uprav !== r.id && <div className="mt-2"><Prilohy seznam={prilohy.get(r.id)!} org={org} tabulka="termin" zaznamId={r.id} cesta={cestaZpet} nahravat={false} /></div>}
                   </div>
                   <div className="flex items-center gap-3 whitespace-nowrap">
                     <span className={pozde ? "font-semibold text-red-700" : "text-slate-600"}>{r.splneno ? `splněno ${datum(r.splneno_dne)}` : `${pozde ? "po termínu · " : ""}${datum(r.datum)}`}</span>
                     {r.splneno
                       ? <form action={znovuOtevrit.bind(null, r.id)}><button className="text-xs text-slate-500 hover:underline">vrátit</button></form>
                       : <form action={splnitTermin.bind(null, r.id)}><button className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-100">✓ Splněno</button></form>}
-                    <Link href={odkaz({ uprav: r.id })} className="text-xs text-blue-700 hover:underline">upravit</Link>
+                    <Link href={odkaz({ uprav: r.id })} className="text-xs text-blue-700 hover:underline">{(prilohy.get(r.id)?.length ?? 0) ? `📎 ${prilohy.get(r.id)!.length} · ` : ""}upravit / přílohy</Link>
                   </div>
                 </div>
                 {uprav === r.id && (
                   <div className="mt-3 border-t border-slate-100 pt-3">
                     <Formular akce={upravitTermin.bind(null, r.id)} v={r} moznosti={moznosti} tlacitko="Uložit" />
+                    <div className="mt-3"><div className="stitek mb-1">Fotky a dokumenty</div>
+                      <Prilohy seznam={prilohy.get(r.id) ?? []} org={org} tabulka="termin" zaznamId={r.id} cesta={cestaZpet} /></div>
                     <form action={smazatTermin.bind(null, r.id)} className="mt-2 text-right"><button className="text-xs text-slate-400 hover:text-red-700">smazat</button></form>
                   </div>)}
               </li>);
