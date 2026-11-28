@@ -115,7 +115,7 @@ export function FormularNemovitosti({ akce, zrusit, typy, vlastnici, budovy, rod
         <div className="sm:col-span-4"><RuianAdresa /></div>
         <Pole name="katastralni_uzemi" label="Katastrální území" v={v} />
         <Pole name="lv" label="LV" v={v} />
-        <Pole name="parcelni_cislo" label="Parcela" v={v} />
+        <Pole name="parcelni_cislo" label="Parcela (1435/1 nebo st. 3522)" v={v} />
         <Pole name="cislo_popisne" label="Číslo popisné" v={v} />
         <div className="sm:col-span-2"><Pole name="ulice" label="Ulice" v={v} /></div>
         <Pole name="obec" label="Obec" v={v} />

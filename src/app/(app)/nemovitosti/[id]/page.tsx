@@ -13,7 +13,7 @@ import { Castka } from "@/components/Castka";
 
 export default async function DetailNemovitosti({ params, searchParams }: PageProps<"/nemovitosti/[id]">) {
   const { id } = await params;
-  const { chyba, uprav, disk: diskParam } = await searchParams;
+  const { chyba, uprav, disk: diskParam, katastr_chyba: katastrChyba, katastr_ok: katastrOk } = await searchParams;
   const supabase = await supabaseServer();
   const { data: x } = await supabase.from("nemovitost")
     .select("*, typ:typ_nemovitosti(nazev), nadrazena:nadrazena_id(id, nazev, drive_folder_url, cislo_popisne), vlastnictvi(podil_citatel, podil_jmenovatel, vlastnik(nazev, zkratka))")
@@ -165,6 +165,8 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
               <h2 className="font-semibold">Katastr – z čeho se nemovitost skládá</h2>
               {vymeraCelkem > 0 && <span className="text-sm text-slate-500">pozemky celkem {vymeraCelkem.toLocaleString("cs-CZ")} m²</span>}
             </div>
+            {typeof katastrChyba === "string" && <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">⚠ {katastrChyba}</p>}
+            {katastrOk && !katastrChyba && <p className="mb-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">Uloženo.</p>}
             {polozky.length === 0 ? <p className="mb-3 text-sm text-slate-500">Zatím žádné pozemky, stavby ani jednotky.</p> : (
               <table className="tabulka mb-4">
                 <thead><tr><th>Druh</th><th>K.ú.</th><th>Označení</th><th>LV</th><th className="text-right">Výměra</th><th>Podíl</th><th></th></tr></thead>
@@ -172,7 +174,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
                   <tr key={k.id}>
                     <td>{DRUH[k.druh]}{k.druh_pozemku && <div className="text-xs text-slate-500">{k.druh_pozemku}</div>}</td>
                     <td>{k.katastralni_uzemi ?? "–"}</td>
-                    <td>{k.druh === "parcela" ? `parc. ${k.cislo_parcely ?? "?"}` : k.druh === "stavba" ? `č.p. ${k.cislo_popisne ?? "?"}${k.cislo_parcely ? ` na parc. ${k.cislo_parcely}` : ""}` : `jedn. ${k.cislo_jednotky ?? "?"}`}
+                    <td>{k.druh === "parcela" ? (k.cislo_parcely?.startsWith("st.") ? `parc. ${k.cislo_parcely}` : `parc. č. ${k.cislo_parcely ?? "?"}`) : k.druh === "stavba" ? `č.p. ${k.cislo_popisne ?? "?"}${k.cislo_parcely ? ` na parc. ${k.cislo_parcely}` : ""}` : `jedn. ${k.cislo_jednotky ?? "?"}`}
                       {k.poznamka && <div className="text-xs text-slate-500">{k.poznamka}</div>}</td>
                     <td>{k.lv ?? "–"}</td>
                     <td className="text-right">{k.vymera_m2 ? `${Number(k.vymera_m2).toLocaleString("cs-CZ")} m²` : "–"}</td>
@@ -188,7 +190,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
                         <label className="block"><span className="stitek">Druh</span>
                           <select name="druh" defaultValue={k.druh} className="pole"><option value="parcela">Pozemek</option><option value="stavba">Stavba</option><option value="jednotka">Jednotka</option></select></label>
                         <label className="block"><span className="stitek">K.ú.</span><input name="katastralni_uzemi" defaultValue={k.katastralni_uzemi ?? ""} className="pole" /></label>
-                        <label className="block"><span className="stitek">Parcela</span><input name="cislo_parcely" defaultValue={k.cislo_parcely ?? ""} className="pole" /></label>
+                        <label className="block"><span className="stitek">Parcela</span><input name="cislo_parcely" defaultValue={k.cislo_parcely ?? ""} placeholder="1435/1 nebo st. 3522" className="pole" /></label>
                         <label className="block"><span className="stitek">LV</span><input name="lv" defaultValue={k.lv ?? ""} className="pole" /></label>
                         <label className="block"><span className="stitek">Č.p.</span><input name="cislo_popisne" defaultValue={k.cislo_popisne ?? ""} className="pole" /></label>
                         <label className="block"><span className="stitek">Č. jednotky</span><input name="cislo_jednotky" defaultValue={k.cislo_jednotky ?? ""} className="pole" /></label>
@@ -210,7 +212,7 @@ export default async function DetailNemovitosti({ params, searchParams }: PagePr
                 <label className="block"><span className="stitek">Druh</span>
                   <select name="druh" className="pole"><option value="parcela">Pozemek (parcela)</option><option value="stavba">Stavba</option><option value="jednotka">Jednotka</option></select></label>
                 <label className="block"><span className="stitek">Katastrální území</span><input name="katastralni_uzemi" defaultValue={x.katastralni_uzemi ?? ""} className="pole" /></label>
-                <label className="block"><span className="stitek">Číslo parcely</span><input name="cislo_parcely" placeholder="1435/1" className="pole" /></label>
+                <label className="block"><span className="stitek">Číslo parcely</span><input name="cislo_parcely" placeholder="1435/1 nebo st. 3522" pattern="^\s*([Ss]t(av)?\.?|[Ss]tavební)?\s*\d{1,6}(\s*/\s*\d{1,4})?\s*$" title="Např. 1435/1, u stavební parcely st. 3522" className="pole" /></label>
                 <label className="block"><span className="stitek">LV</span><input name="lv" defaultValue={x.lv ?? ""} className="pole" /></label>
                 <label className="block"><span className="stitek">Č.p. (u stavby)</span><input name="cislo_popisne" className="pole" /></label>
                 <label className="block"><span className="stitek">Č. jednotky</span><input name="cislo_jednotky" placeholder="733/5" className="pole" /></label>
